@@ -18,6 +18,22 @@ then for each one:
    liquidity 10 %) with pros and cons. DPE G is capped at 4/10 (cannot be
    rented).
 
+## Interactive agent (chat)
+
+Talk to the agent in French or English. It uses Claude with tools to
+search listings, change your mortgage / rental variables, analyze, compare
+and give its opinion (visit, negotiate - with a target price - or skip).
+Your variables persist during the conversation.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...        # or: ant auth login
+streamlit run apartment_analyzer/app.py    # "Chat with the agent" tab
+python -m apartment_analyzer.chat_agent    # same agent in the terminal
+```
+
+Example: *"Cherche des studios dans le 17e sud, apport 40k, taux 3,1 % sur
+20 ans, meuble, TMI 30 %, puis compare les 3 meilleurs."*
+
 ## Run
 
 ```bash

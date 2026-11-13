@@ -17,6 +17,7 @@ from apartment_analyzer.pricebar import price_bar_html  # noqa: E402
 from apartment_analyzer.rental import REGIMES, RentalInputs  # noqa: E402
 from apartment_analyzer.sources.bienici import SourceError  # noqa: E402
 from apartment_analyzer.sources.csv_source import load_csv  # noqa: E402
+from apartment_analyzer.chat_ui import render_chat  # noqa: E402
 
 st.set_page_config(page_title="Paris flat investment", layout="wide")
 
@@ -221,6 +222,17 @@ def show_detail(a, loan_inp):
         show_rental(a)
 
 
+def show_detail_compact(a):
+    """Render price bar and mark of an analysis inside the chat."""
+    left, right = st.columns([3, 2])
+    with left:
+        st.markdown(f"**{a.listing.title}** - {eur(a.listing.price)}, "
+                    f"{a.listing.surface} m2")
+        st.markdown(price_bar_html(a.price), unsafe_allow_html=True)
+    with right:
+        show_score(a)
+
+
 def manual_listing():
     """Render a form to analyze one listing typed by the user."""
     c = st.columns(3)
@@ -250,8 +262,10 @@ def main():
     source, upload, crit, tol, zones = sidebar_search()
     loan_inp = sidebar_loan()
     rental_inp = sidebar_rental()
-    tab_rank, tab_manual = st.tabs(["Ranked listings",
-                                    "Analyze one listing"])
+    tab_chat, tab_rank, tab_manual = st.tabs(
+        ["Chat with the agent", "Ranked listings", "Analyze one listing"])
+    with tab_chat:
+        render_chat(loan_inp, rental_inp, show_detail_compact)
     with tab_rank:
         listings = load_listings(source, upload, crit, tol, zones)
         if not listings:
