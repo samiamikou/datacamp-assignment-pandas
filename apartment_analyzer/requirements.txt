@@ -1,0 +1,4 @@
+pandas
+requests
+streamlit>=1.36
+anthropic
