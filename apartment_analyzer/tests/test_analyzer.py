@@ -39,7 +39,7 @@ def test_zones_and_17_sud():
     north = _flat(quartier=None, lat=48.8900, lon=2.3190)
     assert not market.locate(north)
     assert not market.locate(_flat(postal_code="75016"))
-    assert not market.locate(_flat(description="pres de Batignolles"))
+    assert not market.locate(_flat(description="Quartier Batignolles"))
     keyword = _flat(title="Studio", quartier=None,
                     description="metro Villiers")
     assert market.locate(keyword)
@@ -88,3 +88,17 @@ def test_price_bar_html():
     f = _flat()
     market.locate(f)
     assert "neighbourhood" in price_bar_html(market.assess_price(f))
+
+
+def test_carrez_surface_parsing():
+    """Check Carrez surface extraction from ad text."""
+    assert market.carrez_surface("19.67m2 au sol (16.7 m² carrez)") == 16.7
+    assert market.carrez_surface("loi Carrez : 21,5 m2") == 21.5
+    assert market.carrez_surface("studio de 20 m2") is None
+
+
+def test_16_sud_landmarks_excluded():
+    """Check a 16e listing near Exelmans (Auteuil) is rejected."""
+    flat = _flat(postal_code="75116", quartier=None,
+                 description="proche du metro Exelmans")
+    assert not market.locate(flat)

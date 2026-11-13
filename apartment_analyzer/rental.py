@@ -80,7 +80,8 @@ def _running_costs(inp, listing, rent_year):
         tf = config.TAXE_FONCIERE_M2 * listing.surface
     copro = inp.copro_charges
     if copro < 0:
-        copro = config.COPRO_CHARGES_M2 * listing.surface
+        copro = listing.annual_condo_fees or \
+            config.COPRO_CHARGES_M2 * listing.surface
     return {
         "Taxe fonciere": tf,
         "Copro (non recoverable)": copro * inp.non_recoverable_share,

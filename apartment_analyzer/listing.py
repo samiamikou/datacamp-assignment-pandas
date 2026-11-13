@@ -24,6 +24,9 @@ class Listing:
     lat: Optional[float] = None
     lon: Optional[float] = None
     description: str = ""
+    district: Optional[str] = None
+    annual_condo_fees: Optional[float] = None
+    price_decreased: bool = False
     photos: list = field(default_factory=list)
 
     @property

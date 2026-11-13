@@ -27,9 +27,19 @@ KEYWORDS = {
     "Madeleine": ["madeleine", "concorde", "boissy d'anglas"],
     "Europe": ["europe", "saint-lazare", "rome", "rocher", "miromesnil"],
 }
-EXCLUDED_17 = ["batignolles", "epinettes", "brochant", "guy moquet",
-               "la fourche", "clichy-batignolles", "cardinet",
-               "porte de clichy", "porte de saint-ouen"]
+EXCLUDED_17 = ["quartier batignolles", "quartier des batignolles",
+               "square des batignolles", "epinettes", "brochant",
+               "guy moquet", "la fourche", "clichy-batignolles",
+               "cardinet", "rue de saussure", "porte de clichy",
+               "porte de saint-ouen"]
+# Landmarks of the southern 16e (Auteuil, Muette Sud), outside 16e Nord.
+EXCLUDED_16 = ["auteuil", "exelmans", "molitor", "michel-ange",
+               "michel ange", "porte de saint-cloud", "jasmin", "mirabeau",
+               "chardon-lagache", "chardon lagache", "ranelagh",
+               "maison de la radio", "boulainvilliers", "javel"]
+CARREZ_RE = re.compile(
+    r"(\d+(?:[.,]\d+)?)\s*m(?:2|²)?\s*(?:loi\s*)?carrez"
+    r"|carrez\s*(?:de|:)?\s*(\d+(?:[.,]\d+)?)\s*m", re.I)
 
 # Approximate border between 17e Sud (Ternes / Plaine Monceau) and the
 # north (Batignolles / Epinettes): rail line + bd Pereire, as (lon, lat).
@@ -74,23 +84,37 @@ def guess_quartier(listing, zone):
     return None
 
 
-def is_in_17_sud(listing):
+def carrez_surface(text):
+    """Return the Carrez surface quoted in an ad text, or None."""
+    match = CARREZ_RE.search(text or "")
+    if not match:
+        return None
+    return float((match.group(1) or match.group(2)).replace(",", "."))
+
+
+def is_in_17_sud(listing, use_position=True):
     """Tell whether a 75017 listing lies in the south (True/False)."""
     text = _norm(" ".join([listing.title, listing.description,
                            listing.quartier or ""]))
     if any(word in text for word in EXCLUDED_17):
         return False
-    if listing.lat is not None and listing.lon is not None:
+    if use_position and listing.lat is not None \
+            and listing.lon is not None:
         return listing.lat < _border_lat(listing.lon)
     return True
 
 
 def locate(listing):
     """Fill zone and quartier; return False if outside the target area."""
-    zone = zone_from_postal_code(listing.postal_code)
-    if zone is None:
+    zone = listing.zone or zone_from_postal_code(listing.postal_code)
+    if zone not in config.ZONES:
         return False
-    if zone == "17e Sud" and not is_in_17_sud(listing):
+    if zone == "17e Sud" and not is_in_17_sud(
+            listing, use_position=listing.zone is None):
+        return False
+    if zone == "16e Nord" and any(
+            w in _norm(f"{listing.title} {listing.description}")
+            for w in EXCLUDED_16):
         return False
     listing.zone = zone
     listing.quartier = guess_quartier(listing, zone)

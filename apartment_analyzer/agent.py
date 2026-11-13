@@ -47,6 +47,17 @@ def fetch(source="bienici", csv_path=None, criteria=None):
     return listings
 
 
+# Non-standard sales whose price is not a market price.
+EXCLUDE_WORDS = ["viager", "nue propriete", "nue-propriete", "usufruit",
+                 "vendu loue", "vente occupee", "locataire en place",
+                 "viager occupe"]
+
+
+def _is_standard_sale(item):
+    text = market._norm(f"{item.title} {item.description}")
+    return not any(word in text for word in EXCLUDE_WORDS)
+
+
 def filter_listings(listings, criteria=None, price_tolerance=0.0):
     """Keep listings in the target zones matching the criteria."""
     crit = criteria or config.SEARCH
@@ -54,8 +65,9 @@ def filter_listings(listings, criteria=None, price_tolerance=0.0):
     hi = crit["max_price"] * (1 + price_tolerance)
     kept, seen = [], set()
     for item in listings:
-        key = (item.url or item.title, item.price, item.surface)
-        if key in seen or item.surface < crit["min_surface"]:
+        key = (round(item.price), item.surface, item.postal_code)
+        if key in seen or item.surface < crit["min_surface"] \
+                or not _is_standard_sale(item):
             continue
         if lo <= item.price <= hi and market.locate(item):
             kept.append(item)
@@ -82,8 +94,14 @@ def analyze_all(listings, loan_params=None, rental_params=None):
     peers = defaultdict(list)
     for item in listings:
         peers[(item.zone, item.quartier)].append(item.price_m2)
-    results = [analyze(i, loan_params, rental_params,
-                       peers[(i.zone, i.quartier)]) for i in listings]
+        peers[item.zone].append(item.price_m2)
+
+    def _peers(item):
+        same_quartier = peers[(item.zone, item.quartier)]
+        return same_quartier if len(same_quartier) >= 5 else peers[item.zone]
+
+    results = [analyze(i, loan_params, rental_params, _peers(i))
+               for i in listings]
     return sorted(results, key=lambda a: a.score.total, reverse=True)
 
 
