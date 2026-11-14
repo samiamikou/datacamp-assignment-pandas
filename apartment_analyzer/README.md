@@ -45,8 +45,15 @@ python -m apartment_analyzer.agent --source demo  # fictional demo data
 
 ## Data sources
 
+* **All portals** (default): Bien'ici + Figaro Immobilier, duplicates of
+  the same flat merged (portals listed per flat).
 * **Bien'ici (live)**: public but undocumented JSON endpoint aggregating
   most agency listings. It may change or block automated requests.
+* **Figaro Immobilier (live)**: public result pages (data embedded in the
+  page), fetched slowly with an honest user agent.
+* **SeLoger, PAP, LeBonCoin**: they block automated access (captcha /
+  bot protection), so the agent does not scrape them. Paste their ads in
+  the chat, or put them in a CSV.
 * **CSV**: columns `title, price, surface, postal_code` (+ optional
   `rooms, quartier, dpe, floor, elevator, construction_period, url, lat,
   lon, description`) - paste listings from SeLoger, LeBonCoin, PAP...

@@ -23,9 +23,11 @@ TOOLS = [
             "Sud (Ternes, Plaine Monceau), keep those matching the price "
             "and surface criteria, analyze and rank them with the user's "
             "current financing settings. Returns a short ranked list with "
-            "listing ids. Use source 'bienici' for live data; if it fails, "
-            "tell the user and offer 'demo' (fictional) data or manual "
-            "entry."),
+            "listing ids. Source 'all' (default) searches Bien'ici and Figaro "
+            "Immobilier and merges duplicates. SeLoger, PAP and LeBonCoin "
+            "block automated access: for those, ask the user to paste the "
+            "ad and use analyze_custom_listing. If live search fails, offer "
+            "'demo' (fictional) data."),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -33,7 +35,7 @@ TOOLS = [
                 "zones": {"type": "array", "items": {
                     "type": "string", "enum": list(config.ZONES)}},
                 "source": {"type": "string",
-                           "enum": ["bienici", "demo"]},
+                           "enum": ["all", "bienici", "figaro", "demo"]},
                 "price_tolerance_pct": _NUM,
             },
         },
@@ -190,7 +192,7 @@ class AgentSession:
         return self.listings[lid]
 
     def search_listings(self, min_price=None, max_price=None,
-                        min_surface=None, zones=None, source="bienici",
+                        min_surface=None, zones=None, source="all",
                         price_tolerance_pct=5):
         """Fetch, filter and rank listings."""
         crit = dict(config.SEARCH)
@@ -214,6 +216,7 @@ class AgentSession:
         for a in results:
             lid = self._register(a.listing)
             rows.append({"id": lid, "title": a.listing.title,
+                         "portals": a.listing.source,
                          "zone": a.listing.zone,
                          "quartier": a.listing.quartier,
                          "price": _r(a.listing.price),
@@ -225,8 +228,12 @@ class AgentSession:
                          "cashflow_after_tax": _r(
                              a.rental.monthly_cashflow_after_tax),
                          "score": a.score.total})
-        return {"source": source, "criteria": crit, "found": len(rows),
-                "listings": rows[:15]}
+        from .agent import LAST_ERRORS
+        out = {"source": source, "criteria": crit, "found": len(rows),
+               "listings": rows[:15]}
+        if LAST_ERRORS:
+            out["portal_errors"] = dict(LAST_ERRORS)
+        return out
 
     def analyze_listing(self, listing_id):
         """Analyze a stored listing with the current settings."""

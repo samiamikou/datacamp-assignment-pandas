@@ -27,19 +27,25 @@ def eur(value):
     return f"{value:,.0f} EUR".replace(",", " ")
 
 
-@st.cache_data(ttl=3600, show_spinner="Searching Bien'ici...")
-def cached_fetch(min_price, max_price, min_surface):
+LIVE = {"All portals (Bien'ici + Figaro)": "all", "Bien'ici": "bienici",
+        "Figaro Immobilier": "figaro"}
+
+
+@st.cache_data(ttl=3600, show_spinner="Searching the portals...")
+def cached_fetch(source, min_price, max_price, min_surface):
     """Fetch live listings, cached one hour."""
-    return fetch("bienici", criteria={"min_price": min_price,
-                                      "max_price": max_price,
-                                      "min_surface": min_surface})
+    return fetch(source, criteria={"min_price": min_price,
+                                   "max_price": max_price,
+                                   "min_surface": min_surface})
 
 
 def sidebar_search():
     """Render search inputs and return (source, criteria, ...)."""
     st.sidebar.header("1. Search")
     source = st.sidebar.radio(
-        "Source", ["Bien'ici (live)", "Upload CSV", "Demo data"])
+        "Source", list(LIVE) + ["Upload CSV", "Demo data"],
+        help="SeLoger, PAP and LeBonCoin block automated searches: "
+             "export or paste their ads into a CSV, or the chat.")
     upload = None
     if source == "Upload CSV":
         upload = st.sidebar.file_uploader("CSV of listings", type="csv")
@@ -123,7 +129,7 @@ def load_listings(source, upload, crit, tol, zones):
         elif source == "Upload CSV":
             raw = load_csv(upload) if upload else []
         else:
-            raw = cached_fetch(crit["min_price"] * (1 - tol),
+            raw = cached_fetch(LIVE[source], crit["min_price"] * (1 - tol),
                                crit["max_price"] * (1 + tol),
                                crit["min_surface"])
     except (SourceError, ValueError) as exc:

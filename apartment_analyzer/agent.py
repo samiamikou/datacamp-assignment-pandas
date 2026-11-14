@@ -17,7 +17,8 @@ from . import config, market
 from .mortgage import LoanInputs, simulate_loan
 from .rental import RentalInputs, simulate_rental
 from .scoring import score_investment
-from .sources import bienici
+from .sources import bienici, figaro
+from .sources.bienici import SourceError
 from .sources.csv_source import load_csv, load_demo
 
 
@@ -32,18 +33,34 @@ class Analysis:
     score: object
 
 
-def fetch(source="bienici", csv_path=None, criteria=None):
-    """Return raw listings from the chosen source."""
+LIVE_SOURCES = {"bienici": bienici, "figaro": figaro}
+LAST_ERRORS = {}
+
+
+def fetch(source="all", csv_path=None, criteria=None):
+    """Return raw listings from the chosen source ("all" = every portal).
+
+    With "all", a portal that fails is skipped and its error is kept in
+    ``LAST_ERRORS``; SourceError is raised only if every portal failed.
+    """
     if source == "demo":
         return load_demo()
     if source == "csv":
         return load_csv(csv_path)
     crit = criteria or config.SEARCH
+    names = list(LIVE_SOURCES) if source == "all" else [source]
+    LAST_ERRORS.clear()
     listings = []
-    for zone in config.ZONES.values():
-        listings += bienici.search(zone["postal_code"],
-                                   crit["min_price"], crit["max_price"],
-                                   crit["min_surface"])
+    for name in names:
+        try:
+            for zone in config.ZONES.values():
+                listings += LIVE_SOURCES[name].search(
+                    zone["postal_code"], crit["min_price"],
+                    crit["max_price"], crit["min_surface"])
+        except SourceError as exc:
+            LAST_ERRORS[name] = str(exc)
+    if len(LAST_ERRORS) == len(names):
+        raise SourceError("; ".join(LAST_ERRORS.values()))
     return listings
 
 
@@ -63,16 +80,29 @@ def filter_listings(listings, criteria=None, price_tolerance=0.0):
     crit = criteria or config.SEARCH
     lo = crit["min_price"] * (1 - price_tolerance)
     hi = crit["max_price"] * (1 + price_tolerance)
-    kept, seen = [], set()
+    kept, seen = [], {}
     for item in listings:
-        key = (round(item.price), item.surface, item.postal_code)
-        if key in seen or item.surface < crit["min_surface"] \
-                or not _is_standard_sale(item):
+        if item.surface < crit["min_surface"] or not _is_standard_sale(item) \
+                or not lo <= item.price <= hi or not market.locate(item):
             continue
-        if lo <= item.price <= hi and market.locate(item):
-            kept.append(item)
-            seen.add(key)
+        # Same flat on several portals: same zone, price and surface.
+        key = (item.zone, round(item.price / 1000), round(item.surface))
+        if key in seen:
+            _merge(seen[key], item)
+            continue
+        seen[key] = item
+        kept.append(item)
     return kept
+
+
+def _merge(first, dup):
+    """Keep one record per flat, noting every portal it appears on."""
+    if dup.source not in first.source.split("+"):
+        first.source += "+" + dup.source
+        first.other_urls.append(dup.url)
+    for attr in ("dpe", "floor", "elevator", "quartier", "annual_condo_fees"):
+        if getattr(first, attr) is None:
+            setattr(first, attr, getattr(dup, attr))
 
 
 def analyze(listing, loan_params=None, rental_params=None, peers_m2=None):
@@ -131,8 +161,9 @@ def to_dataframe(results):
 
 def _parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--source", choices=["bienici", "csv", "demo"],
-                   default="bienici")
+    p.add_argument("--source",
+                   choices=["all", "bienici", "figaro", "csv", "demo"],
+                   default="all")
     p.add_argument("--csv", help="CSV file when --source csv")
     p.add_argument("--down-payment", type=float, default=25_000)
     p.add_argument("--rate", type=float, default=3.2)

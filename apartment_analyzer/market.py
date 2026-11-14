@@ -84,6 +84,37 @@ def guess_quartier(listing, zone):
     return None
 
 
+FLOOR_RE = re.compile(
+    r"(\d{1,2}) ?(?:e|eme|er|ere)(?: et dernier)? etage")
+GROUND_RE = re.compile(r"rez.de.(?:chaussee|jardin)|\brdc\b")
+YEAR_RE = re.compile(
+    r"(?:immeuble|construit|construction|batiment)[^.]{0,40}?"
+    r"\b(1[89]\d\d|20[0-2]\d)\b")
+
+
+def floor_from_text(text):
+    """Return the floor quoted in an ad text (0 = ground), or None."""
+    text = _norm(text)
+    match = FLOOR_RE.search(text)
+    if match:
+        return int(match.group(1))
+    return 0 if GROUND_RE.search(text) else None
+
+
+def elevator_from_text(text):
+    """Return True/False if the ad says it has a lift or not, else None."""
+    text = _norm(text)
+    if "sans ascenseur" in text:
+        return False
+    return True if "ascenseur" in text else None
+
+
+def year_from_text(text):
+    """Return the building year quoted in an ad text, or None."""
+    match = YEAR_RE.search(_norm(text))
+    return int(match.group(1)) if match else None
+
+
 def carrez_surface(text):
     """Return the Carrez surface quoted in an ad text, or None."""
     match = CARREZ_RE.search(text or "")

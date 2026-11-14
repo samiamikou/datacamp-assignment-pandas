@@ -6,6 +6,7 @@ raised as ``SourceError`` so callers can fall back to CSV / manual input.
 """
 
 import json
+import re
 import unicodedata
 
 import requests
@@ -30,6 +31,11 @@ DISTRICTS = {
     "madeleine": ("8e", "Madeleine"),
     "hoche friedland": ("8e", "Faubourg-du-Roule"),
     "saint-philippe du roule": ("8e", "Faubourg-du-Roule"),
+    "saint philippe du roule": ("8e", "Faubourg-du-Roule"),
+    "elysees-madeleine": ("8e", "Madeleine"),
+    "parc monceau": ("8e", "Europe"),
+    "porte dauphine": ("16e Nord", "Porte-Dauphine"),
+    "pereire-malesherbes": ("17e Sud", "Plaine-de-Monceaux"),
     "champs-elysees": ("8e", "Champs-Elysees"),
     "chaillot": ("16e Nord", "Chaillot"),
     "dauphine": ("16e Nord", "Porte-Dauphine"),
@@ -41,6 +47,7 @@ DISTRICTS = {
     "legendre - levis": ("17e Sud", "Plaine-de-Monceaux"),
 }
 EXCLUDED = ["auteuil", "saint-cloud", "muette-sud", "maison de la radio",
+            "passy", "bois de boulogne",
             "batignolles", "fourche", "epinettes", "porte de clichy"]
 ZONE_OF_SEARCH = {"75008": "8e", "75116": "16e Nord", "75017": "17e Sud"}
 NORTH_16_MIN_LAT = 48.8600
@@ -48,14 +55,21 @@ NORTH_16_MIN_LAT = 48.8600
 
 def _norm(text):
     text = unicodedata.normalize("NFKD", text or "")
-    return text.encode("ascii", "ignore").decode().lower().strip()
+    text = text.encode("ascii", "ignore").decode().lower().strip()
+    return re.sub(r"\s*-\s*", "-", text)
+
+
+_DISTRICT_KEYS = {_norm(k): v for k, v in DISTRICTS.items()}
 
 
 def classify(district_name, search_postal_code, lat=None):
-    """Return (zone, quartier) for a Bien'ici district, or None if out."""
+    """Return (zone, quartier) for a portal district name, or None if out.
+
+    Works for Bien'ici and Figaro Immobilier district labels.
+    """
     name = _norm(district_name)
-    if name in DISTRICTS:
-        return DISTRICTS[name]
+    if name in _DISTRICT_KEYS:
+        return _DISTRICT_KEYS[name]
     if any(word in name for word in EXCLUDED):
         return None
     zone = ZONE_OF_SEARCH.get(search_postal_code)

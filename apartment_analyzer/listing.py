@@ -27,6 +27,7 @@ class Listing:
     district: Optional[str] = None
     annual_condo_fees: Optional[float] = None
     price_decreased: bool = False
+    other_urls: list = field(default_factory=list)
     photos: list = field(default_factory=list)
 
     @property
