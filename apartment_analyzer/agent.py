@@ -85,12 +85,17 @@ def filter_listings(listings, criteria=None, price_tolerance=0.0):
         if item.surface < crit["min_surface"] or not _is_standard_sale(item) \
                 or not lo <= item.price <= hi or not market.locate(item):
             continue
-        # Same flat on several portals: same zone, price and surface.
-        key = (item.zone, round(item.price / 1000), round(item.surface))
-        if key in seen:
-            _merge(seen[key], item)
+        # Same flat on several portals (same zone, price and surface), or
+        # posted twice by one agency (same price, surface and ad text).
+        text = market._norm(item.description)[:150]
+        keys = [(item.zone, round(item.price / 1000), round(item.surface))]
+        if len(text) >= 80:
+            keys.append((round(item.price / 1000), round(item.surface), text))
+        first = next((seen[k] for k in keys if k in seen), None)
+        if first is not None:
+            _merge(first, item)
             continue
-        seen[key] = item
+        seen.update({k: item for k in keys})
         kept.append(item)
     return kept
 

@@ -70,3 +70,15 @@ def test_duplicates_across_portals_are_merged():
     assert len(kept) == 1
     assert kept[0].source == "bienici+figaro" and kept[0].dpe == "F"
     assert kept[0].other_urls == ["https://figaro/1"]
+
+
+def test_same_ad_posted_in_two_zones_is_merged():
+    """Check one agency ad listed under two zones is kept once."""
+    text = "Studio lumineux au 3e étage, proche du parc Monceau, " * 3
+    a = Listing(title="Appartement", price=260000, surface=19,
+                postal_code="75008", zone="8e", source="bienici",
+                url="https://bienici/a", description=text)
+    b = Listing(title="Appartement", price=260000, surface=19,
+                postal_code="75017", zone="17e Sud", source="bienici",
+                url="https://bienici/b", description=text)
+    assert len(filter_listings([a, b])) == 1
