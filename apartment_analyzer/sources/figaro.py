@@ -47,6 +47,12 @@ def _elevator(ad, text):
     return market.elevator_from_text(text)
 
 
+def _photos(ad, limit=5):
+    photos = (ad.get("images") or {}).get("photos") or []
+    urls = [((p.get("url") or {}).get("medium")) for p in photos]
+    return [u for u in urls if u][:limit]
+
+
 def _to_listing(ad, postal_code):
     loc = ad.get("location") or {}
     place = classify(loc.get("district"), postal_code, loc.get("latitude"))
@@ -69,7 +75,7 @@ def _to_listing(ad, postal_code):
         construction_period=_period(market.year_from_text(text)),
         url=ad.get("recordLink") or "", source="figaro",
         lat=loc.get("latitude"), lon=loc.get("longitude"),
-        description=text,
+        description=text, photos=_photos(ad),
         price_decreased=bool(ad.get("priceDownPercentage")))
 
 

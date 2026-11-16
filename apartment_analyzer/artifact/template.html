@@ -1,0 +1,718 @@
+<title>Paris Studio Investor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: settings rail (left) + tabbed workspace; listing cards beside a sticky detail sheet.
+   Motif: Paris enamel street plaques (blue enamel, green frame) for zone labels. */
+:root {
+  --bg: #eef2f4; --surface: #ffffff; --sunk: #e4eaee; --ink: #15222d; --muted: #586a77;
+  --line: #d5dee4; --enamel: #1d3b63; --enamel-ink: #ffffff; --frame: #2f6b52;
+  --accent: #2f6b52; --accent-ink: #ffffff; --good: #1d7a45; --mid: #a86a0c; --bad: #bb3326;
+  --bar-low: #34a05f; --bar-mid: #e3b13a; --bar-high: #d9534a; --focus: #2b6cb0;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e151b; --surface: #16212a; --sunk: #1c2934; --ink: #e5edf2; --muted: #93a5b2;
+  --line: #273541; --enamel: #2a5488; --enamel-ink: #ffffff; --frame: #4f9c7a;
+  --accent: #5bb08a; --accent-ink: #0c1a14; --good: #4fc282; --mid: #e3a83f; --bad: #f0705f;
+  --bar-low: #3fae6c; --bar-mid: #d9a634; --bar-high: #d9574c; --focus: #7fb2ff; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e151b; --surface: #16212a; --sunk: #1c2934; --ink: #e5edf2; --muted: #93a5b2;
+  --line: #273541; --enamel: #2a5488; --enamel-ink: #ffffff; --frame: #4f9c7a;
+  --accent: #5bb08a; --accent-ink: #0c1a14; --good: #4fc282; --mid: #e3a83f; --bad: #f0705f;
+  --bar-low: #3fae6c; --bar-mid: #d9a634; --bar-high: #d9574c; --focus: #7fb2ff; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 800; }
+h2 { font-size: 20px; font-weight: 700; }
+h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.num, .mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+a { color: var(--accent); }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: end; justify-content: space-between; margin-bottom: 18px; }
+header.top p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+.plaques { display: flex; gap: 6px; flex-wrap: wrap; }
+.plaque { display: inline-flex; align-items: center; gap: 6px; background: var(--enamel); color: var(--enamel-ink);
+  border: 2px solid var(--frame); border-radius: 5px; padding: 2px 8px; font: 700 12px/1.3 var(--f-display);
+  letter-spacing: .02em; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+.plaque small { font-weight: 500; opacity: .85; }
+
+.layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Settings rail */
+aside.rail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; }
+@media (min-width: 921px) { aside.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; } }
+aside details { border-top: 1px solid var(--line); padding-top: 10px; }
+aside details:first-of-type { border-top: 0; padding-top: 0; }
+aside summary { cursor: pointer; font: 700 15px var(--f-display); list-style: none; display: flex; justify-content: space-between; }
+aside summary::after { content: "+"; color: var(--muted); }
+aside details[open] summary::after { content: "–"; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 10px; }
+.field { display: grid; gap: 3px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.field label { font-size: 11.5px; color: var(--muted); }
+.field input, .field select { width: 100%; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px;
+  font-family: var(--f-data); font-size: 13px; }
+.toggle { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.toggle input { width: auto; }
+.rail-note { font-size: 11.5px; color: var(--muted); margin: 0; }
+.btn { background: var(--sunk); border: 1px solid var(--line); border-radius: 7px; padding: 6px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 12px; cursor: pointer; font: 600 14px var(--f-display); color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 12px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; cursor: pointer; font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--enamel); color: var(--enamel-ink); border-color: var(--frame); }
+.toolbar select { background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; }
+
+.split { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr); gap: 16px; align-items: start; }
+@media (max-width: 1180px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.list { display: grid; gap: 8px; }
+.card { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 6px 12px; text-align: left; width: 100%;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 11px 12px; cursor: pointer; }
+.card:hover { border-color: var(--muted); }
+.card[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.card .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.card .t { grid-column: 2; }
+.card .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; color: var(--muted); font-size: 12.5px; grid-column: 2; }
+.card .thumb { grid-row: 1 / span 3; grid-column: 1; width: 92px; height: 72px; border-radius: 7px; object-fit: cover; background: var(--sunk); display: grid; place-items: center; font-size: 10.5px; color: var(--muted); text-align: center; }
+.card .side { grid-row: 1 / span 3; grid-column: 3; display: grid; justify-items: end; align-content: start; gap: 4px; }
+.mini { grid-column: 2; position: relative; height: 5px; border-radius: 3px; margin-top: 4px; }
+.mini i { position: absolute; top: -3px; width: 11px; height: 11px; margin-left: -5.5px; border-radius: 50%; background: var(--surface); border: 3px solid var(--ink); }
+.score-chip { font: 800 17px var(--f-display); padding: 2px 8px; border-radius: 7px; color: #fff; min-width: 46px; text-align: center; }
+.s-good { background: var(--good); } .s-mid { background: var(--mid); } .s-bad { background: var(--bad); }
+:root[data-theme="dark"] .score-chip { color: #0c1218; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .score-chip { color: #0c1218; } }
+.dpe { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; font: 800 12px var(--f-display); }
+.dpe-A{background:#008a3e;color:#fff}.dpe-B{background:#2fa94a;color:#fff}.dpe-C{background:#9bc52d;color:#14210a}
+.dpe-D{background:#f2e300;color:#2a2600}.dpe-E{background:#f6b10e;color:#2b1d00}.dpe-F{background:#ec6d1b;color:#fff}
+.dpe-G{background:#d2232a;color:#fff}.dpe-x{background:var(--sunk);color:var(--muted)}
+
+/* Detail sheet */
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 18px; min-width: 0; }
+@media (min-width: 1181px) { .sheet { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; } }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 13px; align-items: center; }
+.hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 640px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+.pricebar .head { font-size: 15px; } .pricebar .head b { font-weight: 700; }
+.pricebar .range { font-size: 12px; color: var(--muted); margin: 2px 0 34px; }
+.track { position: relative; height: 8px; border-radius: 4px; }
+.track .lbl { position: absolute; top: -25px; font: 600 12px var(--f-data); white-space: nowrap; }
+.track .dot { position: absolute; top: -6px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: var(--surface); border: 5px solid var(--ink); }
+.ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 9px; }
+.mark { display: grid; gap: 6px; align-content: start; }
+.mark .big { font: 800 44px/1 var(--f-display); }
+.mark .verdict { font: 700 16px var(--f-display); }
+.comp { display: grid; grid-template-columns: 74px minmax(0, 1fr) 30px; gap: 4px 8px; align-items: center; font-size: 12px; }
+.comp .b { height: 6px; background: var(--sunk); border-radius: 3px; overflow: hidden; }
+.comp .b i { display: block; height: 100%; background: var(--accent); }
+.pc { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.pc li { display: grid; grid-template-columns: 16px minmax(0, 1fr); }
+.pc .p::before { content: "+"; color: var(--good); font-weight: 700; }
+.pc .c::before { content: "−"; color: var(--bad); font-weight: 700; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+.stat { background: var(--sunk); border-radius: 8px; padding: 9px 11px; min-width: 0; }
+.stat .k { font-size: 11.5px; color: var(--muted); }
+.stat .v { font: 600 17px var(--f-data); font-variant-numeric: tabular-nums; }
+.stat .s { font-size: 11.5px; color: var(--muted); }
+.neg { color: var(--bad); } .pos { color: var(--good); }
+.tbl-wrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+td, th { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+td.r, th.r { text-align: right; font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+tr.total td { font-weight: 700; border-bottom: 0; }
+.desc { font-size: 13px; color: var(--muted); max-width: 75ch; margin: 0; }
+.callout { background: var(--sunk); border-left: 3px solid var(--mid); border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+svg text { fill: var(--muted); font: 10px var(--f-data); }
+
+/* Agent */
+.agent { display: grid; gap: 12px; max-width: 900px; }
+.log { display: grid; gap: 10px; }
+.msg { border-radius: var(--r); padding: 10px 14px; max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.msg.user { background: var(--enamel); color: var(--enamel-ink); justify-self: end; max-width: 85%; }
+.msg.bot { background: var(--surface); border: 1px solid var(--line); }
+.msg.bot p { margin: 0 0 8px; } .msg.bot p:last-child { margin: 0; }
+.msg.bot ul { margin: 0 0 8px; padding-left: 20px; }
+.msg .tools { font: 11.5px var(--f-data); color: var(--muted); margin-bottom: 6px; }
+.compose { display: flex; gap: 8px; }
+.compose textarea { flex: 1; min-width: 0; resize: vertical; min-height: 46px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; }
+.examples { display: flex; flex-wrap: wrap; gap: 6px; }
+.portal { display: inline-block; font: 600 10.5px/1.5 var(--f-body); letter-spacing: .03em; text-transform: uppercase; padding: 0 6px; border-radius: 4px; background: var(--sunk); color: var(--muted); border: 1px solid var(--line); }
+.portal.user { color: var(--accent); border-color: var(--accent); }
+.addbox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; margin-bottom: 12px; }
+.addbox summary { cursor: pointer; font-weight: 600; }
+.addgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px 10px; margin-top: 10px; align-items: end; }
+.addgrid .field.wide { grid-column: span 2; }
+.badge-new { font: 700 10.5px/1.6 var(--f-body); letter-spacing: .04em; text-transform: uppercase; padding: 0 6px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); }
+.gallery { display: grid; gap: 6px; }
+.gallery .main { width: 100%; aspect-ratio: 4 / 3; max-height: 380px; object-fit: cover; border-radius: 9px; background: var(--sunk); max-width: 100%; }
+.gallery .strip { display: flex; gap: 6px; overflow-x: auto; }
+.gallery .strip button { padding: 0; border: 2px solid transparent; border-radius: 7px; background: none; cursor: pointer; flex: 0 0 auto; }
+.gallery .strip button[aria-pressed="true"] { border-color: var(--accent); }
+.gallery .strip img { width: 76px; height: 56px; object-fit: cover; border-radius: 5px; display: block; }
+.visit { border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 8px; }
+.visit .pill { display: inline-block; font: 800 13px var(--f-display); letter-spacing: .04em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; color: #fff; }
+.pill.visit-yes { background: var(--good); } .pill.visit-maybe { background: var(--mid); } .pill.visit-no { background: var(--bad); }
+.visit dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
+.visit dt { color: var(--muted); } .visit dd { margin: 0; }
+.footnote { font-size: 12px; color: var(--muted); margin-top: 26px; max-width: 90ch; }
+@media (prefers-reduced-motion: no-preference) { .track .dot, .mini i { transition: left .35s ease; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Paris Studio Investor</h1>
+      <p>Live listings from Bien'ici and Figaro Immobilier, snapshot of <span id="snapDate"></span>, plus any flat you add from SeLoger, PAP or LeBonCoin: flats around 200–250k € (Carrez surface 19 m² or more), each with its price against the neighbourhood, a mortgage and rental simulation, and a mark out of 10. Change your variables on the left and everything updates. Refreshed every morning before 7:00 (Paris time); <span class="badge-new">New</span> marks flats that appeared since the previous day.</p>
+    </div>
+    <div class="plaques" aria-label="Target zones">
+      <span class="plaque">8e <small>Arrondissement</small></span>
+      <span class="plaque">16e Nord <small>Chaillot · Dauphine</small></span>
+      <span class="plaque">17e Sud <small>Ternes · Monceau</small></span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" aria-label="Your variables">
+      <details open>
+        <summary>Mortgage</summary>
+        <div class="fields">
+          <div class="field"><label for="down">Down payment €</label><input id="down" type="number" step="1000" value="25000"></div>
+          <div class="field"><label for="rate">Rate %/yr</label><input id="rate" type="number" step="0.05" value="3.2"></div>
+          <div class="field"><label for="years">Years</label><input id="years" type="number" min="5" max="30" value="25"></div>
+          <div class="field"><label for="insRate">Insurance %/yr</label><input id="insRate" type="number" step="0.01" value="0.30"></div>
+          <div class="field"><label for="notary">Notary fees %</label><input id="notary" type="number" step="0.1" value="8"></div>
+          <div class="field"><label for="guarantee">Guarantee %</label><input id="guarantee" type="number" step="0.1" value="1"></div>
+          <div class="field"><label for="bankFees">Bank fees €</label><input id="bankFees" type="number" step="100" value="1000"></div>
+          <div class="field"><label for="agency">Extra agency fees €</label><input id="agency" type="number" step="500" value="0"></div>
+          <div class="field"><label for="works">Works €</label><input id="works" type="number" step="1000" value="0"></div>
+          <div class="field"><label for="furniture">Furniture €</label><input id="furniture" type="number" step="500" value="4000"></div>
+          <div class="field"><label for="income">Net income €/month</label><input id="income" type="number" step="100" value="0"></div>
+          <div class="field"><label for="otherDebt">Other loans €/month</label><input id="otherDebt" type="number" step="50" value="0"></div>
+        </div>
+      </details>
+      <details open>
+        <summary>Rental</summary>
+        <div class="fields">
+          <div class="field wide toggle"><input id="furnished" type="checkbox" checked><label for="furnished" style="font-size:13px;color:var(--ink)">Furnished (meublé)</label></div>
+          <div class="field wide"><label for="regime">Tax regime</label>
+            <select id="regime"><option>LMNP reel</option><option>LMNP micro-BIC</option><option>Nu micro-foncier</option><option>Nu reel</option></select></div>
+          <div class="field"><label for="tmi">Tax bracket TMI %</label>
+            <select id="tmi"><option>0</option><option>11</option><option selected>30</option><option>41</option><option>45</option></select></div>
+          <div class="field"><label for="social">Social levies %</label><input id="social" type="number" step="0.1" value="17.2"></div>
+          <div class="field"><label for="rentOverride">Rent €/month (0 = legal max)</label><input id="rentOverride" type="number" step="10" value="0"></div>
+          <div class="field"><label for="vacancy">Vacancy months/yr</label><input id="vacancy" type="number" step="0.5" value="1"></div>
+          <div class="field"><label for="tf">Property tax €/yr (−1 = est.)</label><input id="tf" type="number" step="50" value="-1"></div>
+          <div class="field"><label for="copro">Building charges €/yr (−1 = ad/est.)</label><input id="copro" type="number" step="50" value="-1"></div>
+          <div class="field"><label for="pno">Landlord insurance €/yr</label><input id="pno" type="number" step="10" value="150"></div>
+          <div class="field"><label for="gli">Unpaid-rent insurance %</label><input id="gli" type="number" step="0.5" value="0"></div>
+          <div class="field"><label for="mgmt">Agency management %</label><input id="mgmt" type="number" step="0.5" value="0"></div>
+          <div class="field"><label for="maint">Repairs reserve %</label><input id="maint" type="number" step="0.5" value="3"></div>
+        </div>
+      </details>
+      <button class="btn" id="reset" type="button">Reset to defaults</button>
+      <p class="rail-note">Your values are remembered in this browser only.</p>
+    </aside>
+
+    <main>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-list" aria-selected="true" aria-controls="panel-list">Listings <span class="num" id="countTab"></span></button>
+        <button class="tab" role="tab" id="tab-agent" aria-selected="false" aria-controls="panel-agent">Ask the agent</button>
+      </div>
+
+      <section id="panel-list" role="tabpanel" aria-labelledby="tab-list">
+        <div class="toolbar">
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="zoneChips"></div>
+          <label class="toggle"><input type="checkbox" id="hideFG"> Hide energy label F/G</label>
+          <label class="toggle">Sort <select id="sort">
+            <option value="score">Best mark</option><option value="cf">Best cash-flow</option>
+            <option value="price">Lowest price</option><option value="delta">Cheapest vs area</option></select></label>
+        </div>
+        <details class="addbox" id="addbox">
+          <summary>Add a flat from SeLoger, PAP, LeBonCoin…</summary>
+          <p class="rail-note" style="margin-top:6px">These sites block automated searches. Copy the key facts from the ad here, or paste the whole ad into “Ask the agent”. Added flats stay in this browser.</p>
+          <form class="addgrid" id="addForm">
+            <div class="field wide"><label for="a-url">Link to the ad</label><input id="a-url" type="url" placeholder="https://www.seloger.com/…"></div>
+            <div class="field wide"><label for="a-title">Title</label><input id="a-title" type="text" placeholder="Studio rue de Lévis"></div>
+            <div class="field"><label for="a-price">Price €</label><input id="a-price" type="number" required step="1000"></div>
+            <div class="field"><label for="a-surface">Carrez m²</label><input id="a-surface" type="number" required step="0.1"></div>
+            <div class="field"><label for="a-zone">Zone</label><select id="a-zone"></select></div>
+            <div class="field"><label for="a-quartier">Quartier</label><select id="a-quartier"></select></div>
+            <div class="field"><label for="a-dpe">Energy label</label><select id="a-dpe"><option value="">?</option><option>A</option><option>B</option><option>C</option><option selected>D</option><option>E</option><option>F</option><option>G</option></select></div>
+            <div class="field"><label for="a-floor">Floor</label><input id="a-floor" type="number" min="0" value="2"></div>
+            <div class="field"><label for="a-lift">Lift</label><select id="a-lift"><option value="">?</option><option value="1">Yes</option><option value="0">No</option></select></div>
+            <div class="field"><label for="a-period">Built</label><select id="a-period"></select></div>
+            <div class="field"><button class="btn primary" type="submit">Add and analyze</button></div>
+          </form>
+        </details>
+        <div class="split">
+          <div class="list" id="list"></div>
+          <article class="sheet" id="sheet" aria-live="polite"></article>
+        </div>
+      </section>
+
+      <section id="panel-agent" role="tabpanel" aria-labelledby="tab-agent" hidden>
+        <div class="agent">
+          <p style="margin:0;color:var(--muted)">Ask in French or English. The agent reads these listings, changes your variables, reruns the numbers and gives its opinion. It uses your own Claude account; you'll be asked to allow it the first time.</p>
+          <div class="examples" id="examples"></div>
+          <div class="log" id="log"></div>
+          <form class="compose" id="compose">
+            <textarea id="q" placeholder="e.g. Apport 40k, taux 3,1 % sur 20 ans : lequel visiter en premier ?" aria-label="Message to the agent"></textarea>
+            <div style="display:grid;gap:6px;align-content:start">
+              <button class="btn primary" id="send" type="submit">Send</button>
+              <button class="btn" id="stop" type="button" hidden>Stop</button>
+            </div>
+          </form>
+          <p class="rail-note" id="agentNote"></p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <p class="footnote">Neighbourhood prices and rent-control ceilings are approximations (2025–26 levels, blended with the asking prices in this snapshot). Asking prices run above final sale prices. Check recent sales on DVF (app.dvf.etalab.gouv.fr) and the official ceiling on referenceloyer.drihl.ile-de-france.gouv.fr before making an offer. A decision aid, not financial advice.</p>
+</div>
+
+<script>
+const DATA = __DATA__;
+const C = DATA.cfg;
+const $ = (id) => document.getElementById(id);
+let sampleFn = null, imagesOk = null; // set once Claude is available
+const eur = (v) => (Math.round(v)).toLocaleString("fr-FR").replace(/ /g, " ") + " €";
+const n0 = (v) => Math.round(v).toLocaleString("fr-FR").replace(/ /g, " ");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clip = (v, lo = 0, hi = 10) => Math.max(lo, Math.min(hi, v));
+const lerp = (x, a, b) => clip((x - a) / (b - a) * 10);
+const median = (a) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const portalTags = (l) => l.user ? `<span class="portal user">Yours</span>` : (l.links || []).map((k) => `<span class="portal">${k.portal === "Figaro Immobilier" ? "Figaro" : "Bien'ici"}</span>`).join("");
+const BASE_LISTINGS = DATA.listings.slice();
+const HAS_HISTORY = BASE_LISTINGS.some((l) => l.first_seen && l.first_seen < DATA.snapshot);
+const isNew = (l) => HAS_HISTORY && l.first_seen === DATA.snapshot;
+let userListings = [];
+try { userListings = JSON.parse(localStorage.getItem("psi-added") || "[]"); } catch (e) {}
+function syncListings() { DATA.listings = BASE_LISTINGS.concat(userListings); try { localStorage.setItem("psi-added", JSON.stringify(userListings)); } catch (e) {} }
+const ZONE_Q = { "8e": ["Champs-Elysees", "Faubourg-du-Roule", "Madeleine", "Europe"], "16e Nord": ["Chaillot", "Porte-Dauphine", "Muette Nord"], "17e Sud": ["Ternes", "Plaine-de-Monceaux"] };
+function portalOf(url) { const u = String(url || ""); return /seloger/.test(u) ? "SeLoger" : /pap\.fr/.test(u) ? "PAP" : /leboncoin/.test(u) ? "LeBonCoin" : /lefigaro/.test(u) ? "Figaro Immobilier" : /bienici/.test(u) ? "Bien'ici" : "the ad"; }
+function addListing(f) {
+  const price = Number(f.price), surface = Number(f.surface), zone = String(f.zone || "");
+  if (!(price > 0) || !(surface > 0)) throw new Error("Price and surface are required.");
+  if (!ZONE_Q[zone]) throw new Error("Zone must be one of: " + Object.keys(ZONE_Q).join(", "));
+  const quartier = ZONE_Q[zone].includes(f.quartier) ? f.quartier : null;
+  const id = "U" + (userListings.reduce((m, x) => Math.max(m, Number(x.id.slice(1)) || 0), 0) + 1);
+  const url = f.url ? String(f.url) : "";
+  const l = { id, user: true, title: String(f.title || `Flat ${surface} m² added by you`).slice(0, 120), url, links: url ? [{ portal: portalOf(url), url }] : [],
+    zone, quartier, district: null, price, surface, rooms: Number(f.rooms) || 1, dpe: /^[A-G]$/.test(f.dpe || "") ? f.dpe : null,
+    floor: f.floor === "" || f.floor == null ? null : Number(f.floor), elevator: f.elevator === true || f.elevator === "1" ? true : f.elevator === false || f.elevator === "0" ? false : null,
+    period: C.period[f.period] ? f.period : "avant 1946", condo: Number(f.condo) > 0 ? Number(f.condo) : null, reduced: false, desc: String(f.notes || "").slice(0, 520) };
+  userListings.push(l); syncListings(); return l;
+}
+syncListings();
+$("snapDate").textContent = new Date(DATA.snapshot).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+/* ---------- settings ---------- */
+const NUM_FIELDS = ["down", "rate", "years", "insRate", "notary", "guarantee", "bankFees", "agency", "works", "furniture",
+  "income", "otherDebt", "social", "rentOverride", "vacancy", "tf", "copro", "pno", "gli", "mgmt", "maint"];
+const DEFAULTS = {};
+for (const id of NUM_FIELDS) DEFAULTS[id] = Number($(id).value);
+DEFAULTS.furnished = true; DEFAULTS.regime = "LMNP reel"; DEFAULTS.tmi = 30;
+function readSettings() {
+  const s = {};
+  for (const id of NUM_FIELDS) { const v = Number($(id).value); s[id] = Number.isFinite(v) ? v : DEFAULTS[id]; }
+  s.furnished = $("furnished").checked; s.regime = $("regime").value; s.tmi = Number($("tmi").value);
+  return s;
+}
+function writeSettings(s) {
+  for (const id of NUM_FIELDS) if (s[id] !== undefined) $(id).value = s[id];
+  if (s.furnished !== undefined) $("furnished").checked = !!s.furnished;
+  if (s.regime) $("regime").value = s.regime;
+  if (s.tmi !== undefined) { const o = [...$("tmi").options].find((x) => Number(x.value) === Number(s.tmi)); if (o) $("tmi").value = o.value; }
+}
+try { const saved = JSON.parse(localStorage.getItem("psi-settings") || "null"); if (saved) writeSettings(saved); } catch (e) {}
+
+/* ---------- model (same logic as the Python agent) ---------- */
+function premium(surface) { for (const [mx, f] of C.premium) if (surface < mx) return f; return 1; }
+function payment(P, rate, years) { const n = years * 12; if (P <= 0 || n <= 0) return 0; const r = rate / 1200; return r === 0 ? P / n : P * r / (1 - Math.pow(1 + r, -n)); }
+function loanSim(price, s) {
+  const notary = price * s.notary / 100;
+  const project = price + notary + s.agency + s.works + s.furniture + s.bankFees;
+  const base = Math.max(project - s.down, 0);
+  const loan = base * (1 + s.guarantee / 100);
+  const pi = payment(loan, s.rate, s.years), ins = loan * s.insRate / 100 / 12, n = s.years * 12, r = s.rate / 1200;
+  let bal = loan; const years = [];
+  for (let m = 1; m <= n; m++) { const it = bal * r, cap = pi - it; bal = Math.max(bal - cap, 0); const y = Math.ceil(m / 12);
+    (years[y - 1] ||= { year: y, interest: 0, principal: 0 }); years[y - 1].interest += it; years[y - 1].principal += cap; }
+  const totalInterest = pi * n - loan, totalIns = ins * n;
+  return { notary, loan, pi, ins, pay: pi + ins, totalInterest, totalIns, project: project + loan - base,
+    creditCost: totalInterest + totalIns + loan - base + s.bankFees, debtRatio: s.income > 0 ? (pi + ins + s.otherDebt) / s.income * 100 : 0, years };
+}
+function rentCap(l, furnished) {
+  let b = C.rentBase[l.quartier] ?? C.zoneRent[l.zone];
+  b *= C.rooms[String(Math.min(Math.max(l.rooms || 1, 1), 3))] ?? 1;
+  b *= C.period[l.period] ?? 1;
+  return furnished ? b * C.furnished : b;
+}
+function rentalSim(l, s, lo) {
+  const cap = rentCap(l, s.furnished), legal = cap * l.surface, rent = s.rentOverride || legal;
+  const rentYear = rent * Math.max(12 - s.vacancy, 0);
+  const tf = s.tf < 0 ? C.tf * l.surface : s.tf;
+  const copro = s.copro < 0 ? (l.condo || C.copro * l.surface) : s.copro;
+  const costs = { "Property tax (taxe foncière)": tf, "Building charges, landlord share": copro * C.nonrec, "Landlord insurance": s.pno,
+    "Unpaid-rent insurance": rentYear * s.gli / 100, "Agency management": rentYear * s.mgmt / 100, "Repairs reserve": rentYear * s.maint / 100 };
+  const yearly = Object.values(costs).reduce((a, b) => a + b, 0);
+  const ded = yearly + (lo.years[0]?.interest || 0) + lo.ins * 12;
+  const amort = 0.85 * (l.price + lo.notary) / 30 + s.works / 15 + s.furniture / 7;
+  const base = { "LMNP micro-BIC": rentYear * 0.5, "Nu micro-foncier": rentYear * 0.7,
+    "LMNP reel": Math.max(rentYear - ded - amort, 0), "Nu reel": Math.max(rentYear - ded, 0) }[s.regime];
+  const tax = base * (s.tmi + s.social) / 100;
+  const cfBefore = (rentYear - yearly) / 12 - lo.pay;
+  return { cap, legal, rent, tenantCharges: copro * (1 - C.nonrec) / 12, rentYear, costs, yearly, tax,
+    gross: rent * 12 / l.price * 100, net: (rentYear - yearly) / lo.project * 100, cfBefore, cfAfter: cfBefore - tax / 12 };
+}
+function priceCheck(l, peers) {
+  let ref = (C.market[l.quartier] ?? C.zonePrice[l.zone]) * premium(l.surface);
+  if (peers.length >= 5) ref = 0.5 * ref + 0.5 * median(peers);
+  const low = ref * 0.92, high = ref * 1.08, pm = l.price / l.surface;
+  return { pm, ref, low, high, delta: (pm / ref - 1) * 100, label: pm < low ? "low" : pm > high ? "high" : "typical", peers: peers.length };
+}
+const WEIGHTS = { price: .35, yield: .20, cashflow: .15, dpe: .20, liquidity: .10 };
+function liquidity(l) {
+  let s = 6; if (l.surface >= 25) s += 1; if (l.elevator === true) s += 1.5;
+  if (l.floor === 0) s -= 2.5; else if (l.floor != null && l.floor >= 5 && l.elevator === false) s -= 2; else if (l.floor != null && l.floor >= 2) s += 1;
+  return clip(s);
+}
+function scoreIt(l, p, r) {
+  const [dv, dc] = C.dpe[l.dpe] ?? [5, "Energy label unknown: ask for it."];
+  const comps = { price: p.delta <= 0 ? clip(6 + -p.delta / 15 * 4) : clip(6 - p.delta / 22 * 6), yield: lerp(r.net, 2, 4.5),
+    cashflow: lerp(r.cfAfter, -450, 50), dpe: dv, liquidity: liquidity(l) };
+  let total = Object.entries(comps).reduce((a, [k, v]) => a + WEIGHTS[k] * v, 0);
+  if (l.dpe === "G") total = Math.min(total, 4);
+  const verdict = total >= 7.5 ? "Excellent investment" : total >= 6 ? "Good investment" : total >= 4.5 ? "Average, negotiate" : "Not recommended";
+  const pros = [], cons = [];
+  if (p.label === "low") pros.push(`Price ${Math.abs(p.delta).toFixed(0)}% below the neighbourhood reference.`);
+  else if (p.label === "high") cons.push(`Price ${p.delta.toFixed(0)}% above the neighbourhood reference: negotiate.`);
+  if (r.net >= 3.5) pros.push(`Solid net yield (${r.net.toFixed(1)}%).`); else if (r.net < 2.8) cons.push(`Low net yield (${r.net.toFixed(1)}%).`);
+  (r.cfAfter >= 0 ? pros : cons).push(`Monthly cash-flow after tax: ${r.cfAfter >= 0 ? "+" : ""}${Math.round(r.cfAfter)} €.`);
+  (/excellent|good/i.test(dc) ? pros : cons).push(dc);
+  if (l.floor === 0) cons.push("Ground floor: lower resale and rental appeal.");
+  if (l.floor >= 5 && l.elevator === false) cons.push(`${l.floor}th floor without lift.`);
+  if (/r[ée]nover|travaux/i.test(l.desc)) cons.push("The ad mentions works: get a quote before offering.");
+  return { total: Math.round(total * 10) / 10, verdict, comps, pros, cons };
+}
+function analyzeAll(s) {
+  const groups = {};
+  for (const l of DATA.listings) { (groups[l.zone + "|" + l.quartier] ||= []).push(l.price / l.surface); (groups[l.zone] ||= []).push(l.price / l.surface); }
+  return DATA.listings.map((l) => {
+    const q = groups[l.zone + "|" + l.quartier], peers = q.length >= 5 ? q : groups[l.zone];
+    const lo = loanSim(l.price, s), r = rentalSim(l, s, lo), p = priceCheck(l, peers);
+    return { l, lo, r, p, sc: scoreIt(l, p, r) };
+  });
+}
+
+/* ---------- rendering ---------- */
+let state = { zones: new Set(Object.keys(C.zonePrice)), hideFG: false, sort: "score", selected: null, results: [] };
+const scoreClass = (t) => t >= 6 ? "s-good" : t >= 4.5 ? "s-mid" : "s-bad";
+const dpeBadge = (d) => `<span class="dpe ${d ? "dpe-" + d : "dpe-x"}" title="Energy label ${d || "unknown"}">${d || "?"}</span>`;
+const zonePlaque = (z) => `<span class="plaque" style="font-size:11px;padding:1px 6px">${esc(z)}</span>`;
+function barGeometry(p) { const a = p.low * 0.85, b = p.high * 1.15, f = (v) => (v - a) / (b - a) * 100; return { lo: f(p.low), hi: f(p.high), pos: clip(f(p.pm), 2, 98) }; }
+const gradient = (g) => `linear-gradient(90deg,var(--bar-low) 0 ${g.lo}%,var(--bar-mid) ${g.lo}% ${g.hi}%,var(--bar-high) ${g.hi}% 100%)`;
+const labelColor = (lab) => lab === "low" ? "var(--good)" : lab === "high" ? "var(--bad)" : "var(--mid)";
+
+function visible() {
+  const keys = { score: (a) => -a.sc.total, cf: (a) => -a.r.cfAfter, price: (a) => a.l.price, delta: (a) => a.p.delta };
+  return state.results.filter((a) => state.zones.has(a.l.zone) && !(state.hideFG && ["F", "G"].includes(a.l.dpe)))
+    .sort((x, y) => keys[state.sort](x) - keys[state.sort](y));
+}
+function renderList() {
+  const items = visible();
+  $("countTab").textContent = `(${items.length})`;
+  if (!items.find((a) => a.l.id === state.selected)) state.selected = items[0]?.l.id ?? null;
+  $("list").innerHTML = items.length ? items.map((a) => {
+    const g = barGeometry(a.p);
+    const ph = (a.l.photos || [])[0];
+    return `<button class="card" type="button" data-id="${a.l.id}" aria-current="${a.l.id === state.selected}">
+      ${ph ? `<img class="thumb" src="${esc(ph)}" alt="" loading="lazy">` : `<span class="thumb">No photo</span>`}
+      <div class="t">${isNew(a.l) ? `<span class="badge-new">New</span> ` : ""}${esc(a.l.title)}</div>
+      <div class="side"><span class="score-chip ${scoreClass(a.sc.total)}">${a.sc.total.toFixed(1)}</span>${dpeBadge(a.l.dpe)}</div>
+      <div class="meta">${zonePlaque(a.l.zone)}${portalTags(a.l)}<span>${esc(a.l.quartier || a.l.district || "")}</span>
+        <span class="num">${eur(a.l.price)}</span><span class="num">${a.l.surface} m²</span>
+        <span class="num" style="color:${a.r.cfAfter < 0 ? "var(--bad)" : "var(--good)"}">${a.r.cfAfter >= 0 ? "+" : ""}${n0(a.r.cfAfter)} €/mo</span></div>
+      <div class="mini" style="background:${gradient(g)}"><i style="left:${g.pos}%"></i></div>
+    </button>`; }).join("") : `<p class="callout">No listing matches these filters. Show more zones or include energy labels F/G.</p>`;
+  renderSheet();
+}
+function amortChart(years) {
+  const w = 520, h = 140, pad = 4, bw = (w - pad - 6) / years.length;
+  const max = Math.max(...years.map((y) => y.interest + y.principal));
+  const sy = (v) => (h - 18) * v / max;
+  let bars = "";
+  years.forEach((y, i) => { const x = pad + i * bw, hi = sy(y.interest), hp = sy(y.principal), base = h - 16;
+    bars += `<rect x="${x + 1}" y="${base - hp}" width="${bw - 2}" height="${hp}" fill="var(--accent)"></rect>
+             <rect x="${x + 1}" y="${base - hp - hi}" width="${bw - 2}" height="${hi}" fill="var(--mid)" opacity=".75"></rect>`;
+    if (i === 0 || (i + 1) % 5 === 0) bars += `<text x="${x + bw / 2}" y="${h - 3}" text-anchor="middle">${y.year}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Yearly principal and interest repaid">
+    <line x1="${pad}" x2="${w}" y1="${h - 16}" y2="${h - 16}" stroke="var(--line)"></line>${bars}</svg>
+    <div class="facts" style="font-size:12px"><span><span class="dpe" style="background:var(--accent);width:10px;height:10px"></span> principal</span>
+    <span><span class="dpe" style="background:var(--mid);width:10px;height:10px;opacity:.75"></span> interest</span><span>per year, tallest bar ${n0(max)} €</span></div>`;
+}
+function renderSheet() {
+  const a = state.results.find((x) => x.l.id === state.selected);
+  if (!a) { $("sheet").innerHTML = `<p class="callout">Pick a listing to see its analysis.</p>`; return; }
+  const { l, lo, r, p, sc } = a, g = barGeometry(p), s = readSettings();
+  const word = { low: "low", typical: "typical", high: "high" }[p.label];
+  const costRows = Object.entries(r.costs).filter(([, v]) => v > 0.5);
+  const net = r.rentYear - r.yearly - lo.pay * 12 - r.tax;
+  $("sheet").innerHTML = `
+    <div style="display:grid;gap:8px">
+      <h2>${esc(l.title)}</h2>
+      <div class="facts">${zonePlaque(l.zone)}<span>${esc(l.quartier || "")}${l.district && l.district !== l.quartier ? " · " + esc(l.district) : ""}</span>
+        <span class="num">${eur(l.price)}</span><span class="num">${l.surface} m²</span><span>${l.rooms} room${l.rooms > 1 ? "s" : ""}</span>
+        <span>${dpeBadge(l.dpe)} energy</span><span>floor ${l.floor ?? "?"}${l.elevator === true ? ", lift" : l.elevator === false ? ", no lift" : ""}</span>
+        <span>built ${esc(l.period)}</span>${l.reduced ? `<span class="pos">price already reduced</span>` : ""}</div>
+      <div class="facts">${(l.links || []).map((k) => `<a href="${esc(k.url)}" target="_blank" rel="noopener">Open on ${esc(k.portal)} ↗</a>`).join("")}
+        ${l.user ? `<span class="portal user">Added by you</span><button class="btn" type="button" data-remove="${l.id}">Remove</button>` : ""}</div>
+    </div>
+    ${gallery(l)}
+    ${visitBox(l)}
+    <div class="hero">
+      <div class="pricebar">
+        <h3 style="margin-bottom:8px">Price vs neighbourhood</h3>
+        <div class="head">Price is <b style="color:${labelColor(p.label)}">${word}</b> for this area <span class="num" style="color:${labelColor(p.label)}">(${p.delta >= 0 ? "+" : ""}${p.delta.toFixed(1)}%)</span></div>
+        <div class="range">Typical range <span class="num">${n0(p.low)} – ${n0(p.high)} €/m²</span>${p.peers >= 5 ? ` · blended with ${p.peers} listings nearby` : " · few listings nearby, reference only"}</div>
+        <div class="track" style="background:${gradient(g)}">
+          <span class="lbl" style="left:${g.pos}%;transform:translateX(${g.pos < 15 ? "-10px" : g.pos > 85 ? "calc(-100% + 10px)" : "-50%"});color:${labelColor(p.label)}">${n0(p.pm)} €/m²</span><span class="dot" style="left:${g.pos}%;border-color:${labelColor(p.label)}"></span></div>
+        <div class="ends"><span>Cheap</span><span>Typical</span><span>Expensive</span></div>
+      </div>
+      <div class="mark">
+        <h3>Investment mark</h3>
+        <div class="big" style="color:${sc.total >= 6 ? "var(--good)" : sc.total >= 4.5 ? "var(--mid)" : "var(--bad)"}">${sc.total.toFixed(1)}<span style="font-size:20px;color:var(--muted)">/10</span></div>
+        <div class="verdict">${sc.verdict}</div>
+        <div class="comp">${Object.entries(sc.comps).map(([k, v]) => `<span>${{ price: "Price", yield: "Yield", cashflow: "Cash-flow", dpe: "Energy", liquidity: "Resale" }[k]}</span><span class="b"><i style="width:${v * 10}%"></i></span><span class="num">${v.toFixed(1)}</span>`).join("")}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <ul class="pc">${sc.pros.map((x) => `<li class="p"><span>${esc(x)}</span></li>`).join("")}</ul>
+      <ul class="pc">${sc.cons.map((x) => `<li class="c"><span>${esc(x)}</span></li>`).join("")}</ul>
+    </div>
+    <section>
+      <h3>Mortgage</h3>
+      <div class="stats">
+        <div class="stat"><div class="k">Monthly payment</div><div class="v">${eur(lo.pay)}</div><div class="s">incl. insurance ${eur(lo.ins)}</div></div>
+        <div class="stat"><div class="k">Loan amount</div><div class="v">${eur(lo.loan)}</div><div class="s">${s.years} years at ${s.rate}%</div></div>
+        <div class="stat"><div class="k">Total cost of credit</div><div class="v">${eur(lo.creditCost)}</div><div class="s">interest, insurance, fees</div></div>
+        <div class="stat"><div class="k">Total project</div><div class="v">${eur(lo.project)}</div><div class="s">notary ${eur(lo.notary)}</div></div>
+        ${s.income > 0 ? `<div class="stat"><div class="k">Debt ratio</div><div class="v ${lo.debtRatio > 35 ? "neg" : "pos"}">${lo.debtRatio.toFixed(1)}%</div><div class="s">bank limit 35%</div></div>` : ""}
+      </div>
+      <div style="margin-top:12px">${amortChart(lo.years)}</div>
+    </section>
+    <section>
+      <h3>Rental</h3>
+      <div class="stats">
+        <div class="stat"><div class="k">Legal max rent</div><div class="v">${eur(r.legal)}</div><div class="s">${r.cap.toFixed(1)} €/m², ${s.furnished ? "furnished" : "unfurnished"}</div></div>
+        <div class="stat"><div class="k">Rent used</div><div class="v">${eur(r.rent)}</div><div class="s">+ ${eur(r.tenantCharges)} charges paid by tenant</div></div>
+        <div class="stat"><div class="k">Gross / net yield</div><div class="v">${r.gross.toFixed(2)}% / ${r.net.toFixed(2)}%</div><div class="s">net of costs, on total project</div></div>
+        <div class="stat"><div class="k">Cash-flow after tax</div><div class="v ${r.cfAfter < 0 ? "neg" : "pos"}">${r.cfAfter >= 0 ? "+" : ""}${eur(r.cfAfter)}</div><div class="s">per month · before tax ${eur(r.cfBefore)}</div></div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Per year</th><th class="r">€</th></tr></thead><tbody>
+        <tr><td>Rent collected (${12 - s.vacancy} months)</td><td class="r">${n0(r.rentYear)}</td></tr>
+        ${costRows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">−${n0(v)}</td></tr>`).join("")}
+        <tr><td>Loan payments</td><td class="r">−${n0(lo.pay * 12)}</td></tr>
+        <tr><td>Income tax + social levies (${esc(s.regime)})</td><td class="r">−${n0(r.tax)}</td></tr>
+        <tr class="total"><td>Net cash-flow</td><td class="r ${net < 0 ? "neg" : "pos"}">${n0(net)}</td></tr></tbody></table></div>
+      ${s.regime === "LMNP reel" && r.tax < 1 ? `<p class="rail-note" style="margin-top:6px">No tax in the early years: depreciation of the flat and furniture cancels the taxable rental income.</p>` : ""}
+    </section>
+    <section style="display:grid;gap:6px"><h3>From the ad</h3><p class="desc">${esc(l.desc)}${l.desc.length >= 520 ? "…" : ""}</p></section>`;
+}
+function gallery(l) {
+  const ps = l.photos || [];
+  if (!ps.length) return `<p class="callout">No photos bundled for this flat. Open the ad to see them before deciding.</p>`;
+  return `<div class="gallery"><img class="main" id="gMain" src="${esc(ps[0])}" alt="Photo 1 of ${esc(l.title)}">
+    ${ps.length > 1 ? `<div class="strip">${ps.map((p, i) => `<button type="button" data-photo="${esc(p)}" aria-pressed="${i === 0}" aria-label="Photo ${i + 1}"><img src="${esc(p)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}</div>`;
+}
+const VISIT_COPY = { yes: ["visit-yes", "Worth visiting"], maybe: ["visit-maybe", "Maybe: check first"], no: ["visit-no", "Skip it"] };
+function savedVerdict(l) { try { return JSON.parse(localStorage.getItem("psi-visit-" + (l.key || l.id)) || "null"); } catch (e) { return null; } }
+function visitBox(l) {
+  const v = savedVerdict(l);
+  const canAsk = (l.photos || []).length && sampleFn && imagesOk;
+  const body = v ? `<div><span class="pill ${VISIT_COPY[v.verdict]?.[0] || "visit-maybe"}">${esc(VISIT_COPY[v.verdict]?.[1] || v.verdict)}</span></div>
+      <p style="margin:0">${esc(v.summary || "")}</p>
+      <dl><dt>Condition</dt><dd>${esc(v.condition || "?")}</dd><dt>Light</dt><dd>${esc(v.light || "?")}</dd>
+      <dt>Likely works</dt><dd>${esc(v.works || "?")}</dd>${(v.red_flags || []).length ? `<dt>Red flags</dt><dd>${v.red_flags.map(esc).join(" · ")}</dd>` : ""}
+      <dt>Ask at the visit</dt><dd>${esc((v.questions || []).join(" · ") || "-")}</dd></dl>
+      <p class="rail-note">Claude's read of ${v.n} photo${v.n > 1 ? "s" : ""} and the figures, ${esc(v.date)}. Photos can flatter a flat: check in person.</p>`
+    : `<p class="rail-note" style="margin:0">${(l.photos || []).length ? (canAsk ? "Claude looks at the photos together with the price, mark and ad, and tells you whether a visit is worth your time." : "The photo check needs Claude, which isn't available in this view.") : "No photos to check."}</p>`;
+  return `<section class="visit" id="visitBox"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+    <h3>Should I visit?</h3>${canAsk ? `<button class="btn ${v ? "" : "primary"}" type="button" id="visitBtn" data-id="${l.id}">${v ? "Check again" : "Check the photos with Claude"}</button>` : ""}</div>${body}</section>`;
+}
+async function runVisitCheck(id, btn) {
+  const a = state.results.find((x) => x.l.id === id); if (!a || !sampleFn) return;
+  btn.disabled = true; btn.textContent = "Looking at the photos…";
+  try {
+    const blobs = (await Promise.all((a.l.photos || []).map((p) => fetch(p).then((r) => r.ok ? r.blob() : null).catch(() => null)))).filter(Boolean)
+      .slice(0, Math.max(1, imagesOk.maxCount || 4));
+    const facts = summary(a, false);
+    const prompt = `You help a buy-to-let investor decide whether a Paris flat is worth visiting. You get ${blobs.length} listing photos (in order) plus the figures and ad text below.
+Judge from the photos: overall condition, light, layout for a furnished studio rental, visible works needed (bathroom, kitchen, floors, electrics, windows, damp), and anything the photos seem to hide. Then combine with the figures (price vs area, cash-flow, energy label, floor/lift) into one verdict.
+Figures: ${JSON.stringify(facts)}
+Ad text: ${a.l.desc}
+Reply with only this JSON object: {"verdict":"yes"|"maybe"|"no","summary":"2 sentences in English","condition":"short","light":"short","works":"short, with a rough EUR range if visible","red_flags":["..."],"questions":["2-3 things to check at the visit"]}`;
+    const v = await sampleFn.json(prompt, { images: blobs });
+    if (!v || !["yes", "maybe", "no"].includes(v.verdict)) throw { code: "invalid_json" };
+    v.n = blobs.length; v.date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    try { localStorage.setItem("psi-visit-" + (a.l.key || a.l.id), JSON.stringify(v)); } catch (e) {}
+    renderSheet();
+  } catch (err) {
+    btn.disabled = false; btn.textContent = "Check the photos with Claude";
+    const msg = ERR[err?.code] || (err?.code === "invalid_json" ? "Claude's answer couldn't be read. Try again." : err?.code === "image_rejected" ? "One of the photos couldn't be sent." : "The photo check didn't finish. Try again.");
+    const p = document.createElement("p"); p.className = "callout"; p.textContent = msg; $("visitBox").append(p);
+    if (["not_granted", "sampling_disabled"].includes(err?.code)) sampleFn = null;
+  }
+}
+function recompute() {
+  const s = readSettings();
+  try { localStorage.setItem("psi-settings", JSON.stringify(s)); } catch (e) {}
+  state.results = analyzeAll(s);
+  renderList();
+}
+
+$("zoneChips").innerHTML = Object.keys(C.zonePrice).map((z) => `<button type="button" class="chip" aria-pressed="true" data-zone="${esc(z)}">${esc(z)}</button>`).join("");
+$("zoneChips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (!b) return; const z = b.dataset.zone;
+  state.zones.has(z) ? state.zones.delete(z) : state.zones.add(z); b.setAttribute("aria-pressed", state.zones.has(z)); renderList(); });
+$("hideFG").addEventListener("change", (e) => { state.hideFG = e.target.checked; renderList(); });
+$("sort").addEventListener("change", (e) => { state.sort = e.target.value; renderList(); });
+$("list").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (!c) return; state.selected = c.dataset.id; renderList();
+  if (window.matchMedia("(max-width: 1180px)").matches) $("sheet").scrollIntoView({ behavior: "smooth", block: "start" }); });
+document.querySelector("aside").addEventListener("input", recompute);
+document.querySelector("aside").addEventListener("change", recompute);
+$("reset").addEventListener("click", () => { writeSettings(DEFAULTS); recompute(); });
+for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", () => {
+  for (const x of document.querySelectorAll(".tab")) { const on = x === t; x.setAttribute("aria-selected", on); $(x.getAttribute("aria-controls")).hidden = !on; } });
+$("a-zone").innerHTML = Object.keys(ZONE_Q).map((z) => `<option>${z}</option>`).join("");
+const fillQ = () => { $("a-quartier").innerHTML = `<option value="">Not sure</option>` + ZONE_Q[$("a-zone").value].map((q) => `<option>${q}</option>`).join(""); };
+$("a-zone").addEventListener("change", fillQ); fillQ();
+$("a-period").innerHTML = Object.keys(C.period).map((p) => `<option>${p}</option>`).join("");
+$("addForm").addEventListener("submit", (e) => { e.preventDefault();
+  try { const l = addListing({ url: $("a-url").value, title: $("a-title").value, price: $("a-price").value, surface: $("a-surface").value, zone: $("a-zone").value,
+      quartier: $("a-quartier").value, dpe: $("a-dpe").value, floor: $("a-floor").value, elevator: $("a-lift").value, period: $("a-period").value });
+    state.selected = l.id; e.target.reset(); fillQ(); $("addbox").open = false; recompute(); $("sheet").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (err) { alertBox(err.message); } });
+function alertBox(msg) { let p = $("addErr"); if (!p) { p = document.createElement("p"); p.id = "addErr"; p.className = "callout"; $("addForm").after(p); } p.textContent = msg; }
+$("sheet").addEventListener("click", (e) => {
+  const ph = e.target.closest("[data-photo]");
+  if (ph) { $("gMain").src = ph.dataset.photo; for (const x of ph.parentElement.children) x.setAttribute("aria-pressed", x === ph); return; }
+  const vb = e.target.closest("#visitBtn"); if (vb) { runVisitCheck(vb.dataset.id, vb); return; }
+  const b = e.target.closest("[data-remove]"); if (!b) return;
+  userListings = userListings.filter((x) => x.id !== b.dataset.remove); syncListings(); state.selected = null; recompute(); });
+if (window.matchMedia("(max-width: 920px)").matches) for (const d of document.querySelectorAll("aside details")) d.open = false;
+recompute();
+
+/* ---------- agent (Claude via the sample capability) ---------- */
+const EXAMPLES = ["Lequel visiter en premier, et à quel prix faire une offre ?", "Apport 40 000 €, taux 3,1 % sur 20 ans, revenus 4 500 €/mois",
+  "Compare the three best flats rated D or better", "What if I rent unfurnished with micro-foncier?"];
+const turns = []; let ctl = null;
+const RULES = `You are a Paris buy-to-let advisor inside a web page. The page holds a snapshot (${DATA.snapshot}) of ${BASE_LISTINGS.length} live listings from Bien'ici and Figaro Immobilier (duplicates merged), plus flats the user added (ids starting with U): flats around 200-250k EUR, Carrez surface >= 19 m2, in Paris 8e, 16e Nord (Chaillot, Dauphine, Muette Nord) and 17e Sud (Ternes, Plaine Monceau). Viager and out-of-zone ads are already excluded.
+Use the tools for every number: list_listings to see the ranking, analyze_listing for one flat, get_settings / update_settings to read or change the user's mortgage and rental variables (whenever they mention a down payment, rate, duration, income, furnished or not, tax bracket, rent, works...). Never invent listings or figures. SeLoger, PAP and LeBonCoin can't be searched automatically: when the user pastes an ad from any site, extract its facts and call add_listing (use the Carrez surface; ask for price, surface or zone only if missing), then analyze it.
+When you discuss a flat, cover the price vs neighbourhood, monthly payment, legal maximum rent (Paris rent control), net yield, monthly cash-flow after tax and the mark /10, then give a clear opinion: visit, negotiate (suggest a target price) or skip. Flag energy-label rental bans (G banned since 2025, F from 2028, E from 2034), ground floors, works mentioned in the ad. Market references are approximations and asking prices run above sale prices: remind the user to check DVF and the official rent ceiling before an offer. You are a decision aid, not a licensed advisor.
+Reply in the user's language (French or English), concisely: short paragraphs, bullet lists with "- ", **bold** for key figures. No tables, no headings. Refer to flats by their short title and id (e.g. L3).`;
+function summary(a, full) {
+  const o = { id: a.l.id, title: a.l.title, zone: a.l.zone, quartier: a.l.quartier, price: a.l.price, surface_m2: a.l.surface, rooms: a.l.rooms,
+    energy_label: a.l.dpe, floor: a.l.floor, lift: a.l.elevator, price_m2: Math.round(a.p.pm), vs_area_pct: +a.p.delta.toFixed(1), price_label: a.p.label,
+    monthly_payment: Math.round(a.lo.pay), legal_max_rent: Math.round(a.r.legal), rent_used: Math.round(a.r.rent), net_yield_pct: +a.r.net.toFixed(2),
+    cashflow_month_after_tax: Math.round(a.r.cfAfter), mark: a.sc.total, verdict: a.sc.verdict };
+  if (!full) return o;
+  return { ...o, url: a.l.url, typical_range_m2: [Math.round(a.p.low), Math.round(a.p.high)], comparables_used: a.p.peers, built: a.l.period,
+    annual_building_charges: a.l.condo, price_already_reduced: a.l.reduced, loan_amount: Math.round(a.lo.loan), total_credit_cost: Math.round(a.lo.creditCost),
+    notary_fees: Math.round(a.lo.notary), debt_ratio_pct: a.lo.debtRatio ? +a.lo.debtRatio.toFixed(1) : null, rent_cap_m2: +a.r.cap.toFixed(2),
+    yearly_costs: Object.fromEntries(Object.entries(a.r.costs).map(([k, v]) => [k, Math.round(v)])), yearly_tax: Math.round(a.r.tax),
+    gross_yield_pct: +a.r.gross.toFixed(2), cashflow_month_before_tax: Math.round(a.r.cfBefore), score_parts: Object.fromEntries(Object.entries(a.sc.comps).map(([k, v]) => [k, +v.toFixed(1)])),
+    pros: a.sc.pros, cons: a.sc.cons, ad_text: a.l.desc };
+}
+const TOOLS = [
+  { name: "get_settings", description: "Return the user's current mortgage and rental variables.", execute: () => readSettings() },
+  { name: "update_settings", description: "Change some of the user's variables, then recompute every listing. Keys: down, rate (%/yr), years, insRate (%/yr), notary (%), guarantee (%), bankFees, agency (EUR), works (EUR), furniture (EUR), income (net EUR/month), otherDebt (EUR/month), furnished (bool), regime ('LMNP reel'|'LMNP micro-BIC'|'Nu micro-foncier'|'Nu reel'), tmi (0|11|30|41|45), social (%), rentOverride (EUR/month, 0 = legal max), vacancy (months/yr), tf (EUR/yr, -1 estimate), copro (EUR/yr, -1 from ad or estimate), pno, gli (%), mgmt (%), maint (%). Returns the new settings.",
+    inputSchema: { type: "object", properties: { changes: { type: "object", description: "Only the keys to change." } }, required: ["changes"] },
+    execute: (input) => { const ch = input.changes || {}; const bad = Object.keys(ch).filter((k) => !(k in DEFAULTS)); if (bad.length) throw new Error("Unknown keys: " + bad.join(", "));
+      writeSettings(ch); recompute(); note("Updated your variables: " + Object.keys(ch).join(", ")); return readSettings(); } },
+  { name: "add_listing", description: "Add a flat from an ad the user pasted (SeLoger, PAP, LeBonCoin or any site), analyze it with the current settings and show it on screen. Returns its full analysis. zone must be '8e', '16e Nord' or '17e Sud'; quartier one of Champs-Elysees, Faubourg-du-Roule, Madeleine, Europe, Chaillot, Porte-Dauphine, Muette Nord, Ternes, Plaine-de-Monceaux; period one of 'avant 1946', '1946-1970', '1971-1990', 'apres 1990'.",
+    inputSchema: { type: "object", properties: { title: { type: "string" }, url: { type: "string" }, price: { type: "number" }, surface: { type: "number", description: "Carrez m2" },
+      zone: { type: "string" }, quartier: { type: "string" }, rooms: { type: "number" }, dpe: { type: "string" }, floor: { type: "number" }, elevator: { type: "boolean" },
+      period: { type: "string" }, condo: { type: "number", description: "annual building charges EUR" }, notes: { type: "string", description: "short summary of the ad" } }, required: ["price", "surface", "zone"] },
+    execute: (i) => { const l = addListing(i); state.selected = l.id; recompute(); return summary(state.results.find((x) => x.l.id === l.id), true); } },
+  { name: "list_listings", description: "Ranked listings with key figures under the current settings. Optional filters: zone ('8e'|'16e Nord'|'17e Sud'), max_price, min_energy_label (e.g. 'E' keeps A-E), sort ('mark'|'cashflow'|'price'), limit.",
+    inputSchema: { type: "object", properties: { zone: { type: "string" }, max_price: { type: "number" }, min_energy_label: { type: "string" }, sort: { type: "string" }, limit: { type: "number" } } },
+    execute: (i) => { let rows = state.results.slice();
+      if (i.zone) rows = rows.filter((a) => a.l.zone === String(i.zone));
+      if (i.max_price) rows = rows.filter((a) => a.l.price <= Number(i.max_price));
+      if (i.min_energy_label) rows = rows.filter((a) => a.l.dpe && a.l.dpe <= String(i.min_energy_label).toUpperCase());
+      const k = { cashflow: (a) => -a.r.cfAfter, price: (a) => a.l.price }[i.sort] || ((a) => -a.sc.total);
+      return rows.sort((x, y) => k(x) - k(y)).slice(0, Number(i.limit) || 12).map((a) => summary(a, false)); } },
+  { name: "analyze_listing", description: "Full analysis of one listing by id (e.g. 'L3'): price vs area, mortgage, rent, costs, taxes, yields, cash-flow, mark, pros/cons and the ad text. Also shows it on screen.",
+    inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    execute: (i) => { const a = state.results.find((x) => x.l.id === String(i.id).toUpperCase()); if (!a) throw new Error("Unknown id " + i.id);
+      state.selected = a.l.id; renderList(); return summary(a, true); } },
+];
+function note(t) { $("agentNote").textContent = t; }
+function md(text) {
+  const lines = esc(text).split("\n"); let html = "", list = false;
+  const inline = (s) => s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\b(L\d{1,2})\b/g, '<a href="#" data-goto="$1">$1</a>');
+  for (const raw of lines) { const line = raw.trim();
+    if (/^[-*•] /.test(line)) { if (!list) { html += "<ul>"; list = true; } html += `<li>${inline(line.slice(2))}</li>`; continue; }
+    if (list) { html += "</ul>"; list = false; }
+    if (line) html += `<p>${inline(line.replace(/^#+\s*/, ""))}</p>`; }
+  return html + (list ? "</ul>" : "");
+}
+function addMsg(role, content) { const d = document.createElement("div"); d.className = "msg " + role; d.innerHTML = content; $("log").append(d); return d; }
+$("log").addEventListener("click", (e) => { const a = e.target.closest("[data-goto]"); if (!a) return; e.preventDefault();
+  state.selected = a.dataset.goto; $("tab-list").click(); renderList(); $("sheet").scrollIntoView({ behavior: "smooth", block: "start" }); });
+$("examples").innerHTML = EXAMPLES.map((x) => `<button type="button" class="chip">${esc(x)}</button>`).join("");
+$("examples").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) { $("q").value = b.textContent; $("compose").requestSubmit(); } });
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("compose").requestSubmit(); } });
+$("stop").addEventListener("click", () => ctl?.abort());
+const ERR = { not_granted: "Claude isn't allowed for this page. The listings and calculators still work.", sampling_disabled: "Claude isn't available on this account.",
+  rate_limited: "Too many requests right now. Wait a moment, then send again.", session_expired: "Sign in to Claude again, then resend.",
+  refused: "Claude declined that request. Try rephrasing it.", tools_unavailable: "This app version can't run the agent's tools. Try claude.ai in a browser.",
+  prompt_too_large: "The conversation got too long. Reload the page to start fresh." };
+$("compose").addEventListener("submit", async (e) => {
+  e.preventDefault(); const q = $("q").value.trim(); if (!q || ctl) return;
+  if (!sampleFn) { note("The agent needs Claude, which isn't available in this view. The listings and calculators still work."); return; }
+  $("q").value = ""; addMsg("user", esc(q)); turns.push({ role: "user", content: q });
+  const bubble = addMsg("bot", `<div class="tools">Thinking…</div>`); const used = [];
+  const tools = TOOLS.map((t) => ({ ...t, execute: (inp, ctx) => { used.push(t.name); bubble.querySelector(".tools").textContent = "Working: " + used.join(" → "); return t.execute(inp || {}, ctx); } }));
+  ctl = new AbortController(); $("send").disabled = true; $("stop").hidden = false; note("");
+  const history = turns.slice(-12); if (history[0]?.role !== "user") history.shift();
+  try {
+    const { text, truncated } = await sampleFn([{ role: "user", content: RULES }, ...history], { signal: ctl.signal, tools,
+      onText: ({ text }) => { bubble.innerHTML = (used.length ? `<div class="tools">Used: ${esc(used.join(" → "))}</div>` : "") + md(text); } });
+    bubble.innerHTML = (used.length ? `<div class="tools">Used: ${esc(used.join(" → "))}</div>` : "") + md(text) + (truncated ? `<p class="rail-note">Answer cut short. Ask for less at a time.</p>` : "");
+    turns.push({ role: "assistant", content: text });
+  } catch (err) {
+    if (err?.code === "refused" || !err?.text) bubble.innerHTML = ""; else bubble.innerHTML = md(err.text);
+    if (err?.code !== "cancelled") note(ERR[err?.code] || "Claude didn't finish. Send your message again.");
+    if (!bubble.innerHTML) bubble.remove();
+    if (["not_granted", "sampling_disabled", "tools_unavailable"].includes(err?.code)) { sampleFn = null; $("send").disabled = true; }
+  } finally { ctl = null; $("stop").hidden = true; if (sampleFn) $("send").disabled = false; }
+});
+note("Connecting to Claude…");
+(async () => {
+  const s = await window.claude?.use?.("sample");
+  if (!s) { note("The agent needs Claude, which isn't available in this view. The listings and calculators still work."); $("send").disabled = true; return; }
+  const lim = await s.limits().catch(() => null);
+  if (lim && !lim.tools) { note(ERR.tools_unavailable); $("send").disabled = true; return; }
+  sampleFn = s; imagesOk = lim?.images || null; note(""); renderSheet();
+})();
+</script>
