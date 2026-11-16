@@ -75,10 +75,10 @@ def test_duplicates_across_portals_are_merged():
 def test_same_ad_posted_in_two_zones_is_merged():
     """Check one agency ad listed under two zones is kept once."""
     text = "Studio lumineux au 3e étage, proche du parc Monceau, " * 3
-    a = Listing(title="Appartement", price=260000, surface=19,
+    a = Listing(title="Appartement", price=240000, surface=19,
                 postal_code="75008", zone="8e", source="bienici",
                 url="https://bienici/a", description=text)
-    b = Listing(title="Appartement", price=260000, surface=19,
+    b = Listing(title="Appartement", price=240000, surface=19,
                 postal_code="75017", zone="17e Sud", source="bienici",
                 url="https://bienici/b", description=text)
     assert len(filter_listings([a, b])) == 1
