@@ -57,8 +57,9 @@ def sidebar_search():
                                       config.SEARCH["min_surface"])
     zones = st.sidebar.multiselect("Zones", list(config.ZONES),
                                    list(config.ZONES))
+    no_ground = st.sidebar.checkbox("Exclude ground floor", True)
     crit = {"min_price": price[0], "max_price": price[1],
-            "min_surface": surface}
+            "min_surface": surface, "exclude_ground_floor": no_ground}
     return source, upload, crit, tol / 100, zones
 
 

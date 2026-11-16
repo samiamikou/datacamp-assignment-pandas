@@ -85,6 +85,10 @@ def filter_listings(listings, criteria=None, price_tolerance=0.0):
         if item.surface < crit["min_surface"] or not _is_standard_sale(item) \
                 or not lo <= item.price <= hi or not market.locate(item):
             continue
+        if item.floor is None:
+            item.floor = market.floor_from_text(item.description)
+        if crit.get("exclude_ground_floor") and item.floor == 0:
+            continue
         # Same flat on several portals (same zone, price and surface), or
         # posted twice by one agency (same price, surface and ad text).
         text = market._norm(item.description)[:150]

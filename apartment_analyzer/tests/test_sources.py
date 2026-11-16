@@ -82,3 +82,15 @@ def test_same_ad_posted_in_two_zones_is_merged():
                 postal_code="75017", zone="17e Sud", source="bienici",
                 url="https://bienici/b", description=text)
     assert len(filter_listings([a, b])) == 1
+
+
+def test_ground_floor_flats_are_excluded():
+    """Check rez-de-chaussee flats are dropped, from the field or text."""
+    base = dict(title="Studio", price=220000, surface=21, postal_code="75017",
+                zone="17e Sud", quartier="Ternes")
+    kept = filter_listings([
+        Listing(floor=0, url="a", **base),
+        Listing(description="Studio en rez-de-chaussée sur cour", url="b",
+                **{**base, "price": 221000}),
+        Listing(floor=3, url="c", **{**base, "price": 222000})])
+    assert [x.url for x in kept] == ["c"]

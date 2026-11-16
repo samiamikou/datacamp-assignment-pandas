@@ -12,6 +12,7 @@ SEARCH = {
     "min_price": 200_000,
     "max_price": 250_000,
     "min_surface": 19.0,
+    "exclude_ground_floor": True,  # no rez-de-chaussee / rez-de-jardin
 }
 
 # Target zones -> postal code + administrative "quartiers" kept.
