@@ -185,6 +185,7 @@ svg text { fill: var(--muted); font: 10px var(--f-data); }
       <span class="plaque">8e <small>Arrondissement</small></span>
       <span class="plaque">16e Nord <small>Chaillot · Dauphine</small></span>
       <span class="plaque">17e Sud <small>Ternes · Monceau</small></span>
+      <span class="plaque">15e Nord <small>Grenelle · Necker</small></span>
     </div>
   </header>
 
@@ -306,7 +307,7 @@ const isNew = (l) => HAS_HISTORY && l.first_seen === DATA.snapshot;
 let userListings = [];
 try { userListings = JSON.parse(localStorage.getItem("psi-added") || "[]"); } catch (e) {}
 function syncListings() { DATA.listings = BASE_LISTINGS.concat(userListings); try { localStorage.setItem("psi-added", JSON.stringify(userListings)); } catch (e) {} }
-const ZONE_Q = { "8e": ["Champs-Elysees", "Faubourg-du-Roule", "Madeleine", "Europe"], "16e Nord": ["Chaillot", "Porte-Dauphine", "Muette Nord"], "17e Sud": ["Ternes", "Plaine-de-Monceaux"] };
+const ZONE_Q = { "8e": ["Champs-Elysees", "Faubourg-du-Roule", "Madeleine", "Europe"], "16e Nord": ["Chaillot", "Porte-Dauphine", "Muette Nord"], "17e Sud": ["Ternes", "Plaine-de-Monceaux"], "15e Nord": ["Grenelle", "Necker"] };
 function portalOf(url) { const u = String(url || ""); return /seloger/.test(u) ? "SeLoger" : /pap\.fr/.test(u) ? "PAP" : /leboncoin/.test(u) ? "LeBonCoin" : /lefigaro/.test(u) ? "Figaro Immobilier" : /bienici/.test(u) ? "Bien'ici" : "the ad"; }
 function addListing(f) {
   const price = Number(f.price), surface = Number(f.surface), zone = String(f.zone || "");
@@ -625,7 +626,7 @@ recompute();
 const EXAMPLES = ["Lequel visiter en premier, et à quel prix faire une offre ?", "Apport 40 000 €, taux 3,1 % sur 20 ans, revenus 4 500 €/mois",
   "Compare the three best flats rated D or better", "What if I rent unfurnished with micro-foncier?"];
 const turns = []; let ctl = null;
-const RULES = `You are a Paris buy-to-let advisor inside a web page. The page holds a snapshot (${DATA.snapshot}) of ${BASE_LISTINGS.length} live listings from Bien'ici and Figaro Immobilier (duplicates merged), plus flats the user added (ids starting with U): flats around 200-250k EUR, Carrez surface >= 19 m2, in Paris 8e, 16e Nord (Chaillot, Dauphine, Muette Nord) and 17e Sud (Ternes, Plaine Monceau). Viager and out-of-zone ads are already excluded.
+const RULES = `You are a Paris buy-to-let advisor inside a web page. The page holds a snapshot (${DATA.snapshot}) of ${BASE_LISTINGS.length} live listings from Bien'ici and Figaro Immobilier (duplicates merged), plus flats the user added (ids starting with U): flats around 200-250k EUR, Carrez surface >= 19 m2, in Paris 8e, 16e Nord (Chaillot, Dauphine, Muette Nord), 17e Sud (Ternes, Plaine Monceau) and 15e Nord (Grenelle, Necker: Dupleix, Commerce, Cambronne, Pasteur). Viager, ground-floor and out-of-zone ads are already excluded.
 Use the tools for every number: list_listings to see the ranking, analyze_listing for one flat, get_settings / update_settings to read or change the user's mortgage and rental variables (whenever they mention a down payment, rate, duration, income, furnished or not, tax bracket, rent, works...). Never invent listings or figures. SeLoger, PAP and LeBonCoin can't be searched automatically: when the user pastes an ad from any site, extract its facts and call add_listing (use the Carrez surface; ask for price, surface or zone only if missing), then analyze it.
 When you discuss a flat, cover the price vs neighbourhood, monthly payment, legal maximum rent (Paris rent control), net yield, monthly cash-flow after tax and the mark /10, then give a clear opinion: visit, negotiate (suggest a target price) or skip. Flag energy-label rental bans (G banned since 2025, F from 2028, E from 2034), ground floors, works mentioned in the ad. Market references are approximations and asking prices run above sale prices: remind the user to check DVF and the official rent ceiling before an offer. You are a decision aid, not a licensed advisor.
 Reply in the user's language (French or English), concisely: short paragraphs, bullet lists with "- ", **bold** for key figures. No tables, no headings. Refer to flats by their short title and id (e.g. L3).`;
@@ -648,12 +649,12 @@ const TOOLS = [
     inputSchema: { type: "object", properties: { changes: { type: "object", description: "Only the keys to change." } }, required: ["changes"] },
     execute: (input) => { const ch = input.changes || {}; const bad = Object.keys(ch).filter((k) => !(k in DEFAULTS)); if (bad.length) throw new Error("Unknown keys: " + bad.join(", "));
       writeSettings(ch); recompute(); note("Updated your variables: " + Object.keys(ch).join(", ")); return readSettings(); } },
-  { name: "add_listing", description: "Add a flat from an ad the user pasted (SeLoger, PAP, LeBonCoin or any site), analyze it with the current settings and show it on screen. Returns its full analysis. zone must be '8e', '16e Nord' or '17e Sud'; quartier one of Champs-Elysees, Faubourg-du-Roule, Madeleine, Europe, Chaillot, Porte-Dauphine, Muette Nord, Ternes, Plaine-de-Monceaux; period one of 'avant 1946', '1946-1970', '1971-1990', 'apres 1990'.",
+  { name: "add_listing", description: "Add a flat from an ad the user pasted (SeLoger, PAP, LeBonCoin or any site), analyze it with the current settings and show it on screen. Returns its full analysis. zone must be '8e', '16e Nord', '17e Sud' or '15e Nord'; quartier one of Champs-Elysees, Faubourg-du-Roule, Madeleine, Europe, Chaillot, Porte-Dauphine, Muette Nord, Ternes, Plaine-de-Monceaux, Grenelle, Necker; period one of 'avant 1946', '1946-1970', '1971-1990', 'apres 1990'.",
     inputSchema: { type: "object", properties: { title: { type: "string" }, url: { type: "string" }, price: { type: "number" }, surface: { type: "number", description: "Carrez m2" },
       zone: { type: "string" }, quartier: { type: "string" }, rooms: { type: "number" }, dpe: { type: "string" }, floor: { type: "number" }, elevator: { type: "boolean" },
       period: { type: "string" }, condo: { type: "number", description: "annual building charges EUR" }, notes: { type: "string", description: "short summary of the ad" } }, required: ["price", "surface", "zone"] },
     execute: (i) => { const l = addListing(i); state.selected = l.id; recompute(); return summary(state.results.find((x) => x.l.id === l.id), true); } },
-  { name: "list_listings", description: "Ranked listings with key figures under the current settings. Optional filters: zone ('8e'|'16e Nord'|'17e Sud'), max_price, min_energy_label (e.g. 'E' keeps A-E), sort ('mark'|'cashflow'|'price'), limit.",
+  { name: "list_listings", description: "Ranked listings with key figures under the current settings. Optional filters: zone ('8e'|'16e Nord'|'17e Sud'|'15e Nord'), max_price, min_energy_label (e.g. 'E' keeps A-E), sort ('mark'|'cashflow'|'price'), limit.",
     inputSchema: { type: "object", properties: { zone: { type: "string" }, max_price: { type: "number" }, min_energy_label: { type: "string" }, sort: { type: "string" }, limit: { type: "number" } } },
     execute: (i) => { let rows = state.results.slice();
       if (i.zone) rows = rows.filter((a) => a.l.zone === String(i.zone));

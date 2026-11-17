@@ -16,10 +16,14 @@ from .bienici import SourceError, classify, _period
 BASE = ("https://immobilier.lefigaro.fr/annonces/"
         "immobilier-vente-appartement-{slug}.html")
 SLUGS = {"75008": "paris+8eme+75008", "75116": "paris+16eme+75116",
-         "75017": "paris+17eme+75017"}
+         "75017": "paris+17eme+75017", "75015": "paris+15eme+75015"}
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; apartment-analyzer/0.2)",
            "Accept-Language": "fr-FR,fr;q=0.9"}
 PAUSE_S = 1.0
+# Postal codes an ad must carry for each search: Figaro has been seen
+# returning ads from all over Ile-de-France for a Paris search.
+ALLOWED_POSTAL = {"75008": {"75008"}, "75116": {"75116", "75016"},
+                  "75017": {"75017"}, "75015": {"75015"}}
 
 
 def _page(slug, params, timeout=25):
@@ -55,6 +59,8 @@ def _photos(ad, limit=5):
 
 def _to_listing(ad, postal_code):
     loc = ad.get("location") or {}
+    if str(loc.get("postalCode")) not in ALLOWED_POSTAL.get(postal_code, ()):
+        return None
     place = classify(loc.get("district"), postal_code, loc.get("latitude"))
     if place is None or not ad.get("area") or not ad.get("price"):
         return None

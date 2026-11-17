@@ -26,6 +26,11 @@ KEYWORDS = {
                           "saint-honore", "courcelles"],
     "Madeleine": ["madeleine", "concorde", "boissy d'anglas"],
     "Europe": ["europe", "saint-lazare", "rome", "rocher", "miromesnil"],
+    "Grenelle": ["grenelle", "dupleix", "motte-picquet", "motte picquet",
+                 "emeriau", "zola", "commerce", "violet", "champ de mars",
+                 "avenue de suffren", "beaugrenelle"],
+    "Necker": ["necker", "cambronne", "garibaldi", "pasteur",
+               "sevres-lecourbe", "volontaires", "montparnasse", "duroc"],
 }
 EXCLUDED_17 = ["quartier batignolles", "quartier des batignolles",
                "square des batignolles", "epinettes", "brochant",
@@ -37,6 +42,11 @@ EXCLUDED_16 = ["auteuil", "exelmans", "molitor", "michel-ange",
                "michel ange", "porte de saint-cloud", "jasmin", "mirabeau",
                "chardon-lagache", "chardon lagache", "ranelagh",
                "maison de la radio", "boulainvilliers", "javel"]
+# Landmarks of the southern 15e (Vaugirard, Javel, Convention).
+EXCLUDED_15 = ["porte de versailles", "parc des expositions",
+               "georges brassens", "brancion", "balard", "boucicaut",
+               "lourmel", "parc andre citroen", "alleray"]
+EXCLUDED_BY_ZONE = {"16e Nord": EXCLUDED_16, "15e Nord": EXCLUDED_15}
 CARREZ_RE = re.compile(
     r"(\d+(?:[.,]\d+)?)\s*m(?:2|²)?\s*(?:loi\s*)?carrez"
     r"|carrez\s*(?:de|:)?\s*(\d+(?:[.,]\d+)?)\s*m", re.I)
@@ -143,9 +153,8 @@ def locate(listing):
     if zone == "17e Sud" and not is_in_17_sud(
             listing, use_position=listing.zone is None):
         return False
-    if zone == "16e Nord" and any(
-            w in _norm(f"{listing.title} {listing.description}")
-            for w in EXCLUDED_16):
+    text = _norm(f"{listing.title} {listing.description}")
+    if any(w in text for w in EXCLUDED_BY_ZONE.get(zone, [])):
         return False
     listing.zone = zone
     listing.quartier = guess_quartier(listing, zone)

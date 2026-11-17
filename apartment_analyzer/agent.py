@@ -117,7 +117,7 @@ def _merge(first, dup):
 def analyze(listing, loan_params=None, rental_params=None, peers_m2=None):
     """Run price assessment, mortgage, rental and scoring on a listing."""
     if listing.zone is None and not market.locate(listing):
-        raise ValueError("Listing outside 8e / 16e Nord / 17e Sud.")
+        raise ValueError("Listing outside 8e / 16e Nord / 17e Sud / 15e Nord.")
     loan_inp = replace(loan_params or LoanInputs(price=0),
                        price=listing.price)
     loan = simulate_loan(loan_inp)

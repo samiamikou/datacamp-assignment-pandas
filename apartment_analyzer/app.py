@@ -265,7 +265,8 @@ def manual_listing():
 def main():
     """Run the Streamlit app."""
     st.title("Paris flat investment agent")
-    st.caption("8e - 16e Nord (75116) - 17e Sud (Ternes, Plaine Monceau)")
+    st.caption("8e - 16e Nord (75116) - 17e Sud (Ternes, Plaine Monceau) - "
+               "15e Nord (Grenelle, Necker)")
     source, upload, crit, tol, zones = sidebar_search()
     loan_inp = sidebar_loan()
     rental_inp = sidebar_rental()

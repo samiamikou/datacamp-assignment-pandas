@@ -32,7 +32,7 @@ def test_figaro_ad_to_listing():
                          "Carrez, immeuble de 1930.",
           "dpe": {"energyCategory": "D"}, "options": [],
           "location": {"district": "Ternes-Maillot", "latitude": 48.88,
-                       "longitude": 2.29},
+                       "longitude": 2.29, "postalCode": "75017"},
           "recordLink": "https://immobilier.lefigaro.fr/annonces/x.html"}
     item = figaro._to_listing(ad, "75017")
     assert (item.zone, item.quartier) == ("17e Sud", "Ternes")
@@ -94,3 +94,33 @@ def test_ground_floor_flats_are_excluded():
                 **{**base, "price": 221000}),
         Listing(floor=3, url="c", **{**base, "price": 222000})])
     assert [x.url for x in kept] == ["c"]
+
+
+def test_15e_nord_districts():
+    """Check the 15e is split into north (kept) and south (excluded)."""
+    assert classify("Dupleix - Motte Picquet", "75015") == (
+        "15e Nord", "Grenelle")
+    assert classify("Cambronne-Garibaldi", "75015") == ("15e Nord", "Necker")
+    assert classify("Vaugirard - Parc des Expositions", "75015") is None
+    assert classify("Citroën-Boucicaut", "75015") is None
+    assert classify("Grenelle-Javel", "75015", lat=48.850) == (
+        "15e Nord", "Grenelle")
+    assert classify("Grenelle-Javel", "75015", lat=48.838) is None
+    assert classify(None, "75015", lat=48.836) is None
+    flat = Listing(title="Studio", price=220000, surface=20,
+                   postal_code="75015", description="métro Cambronne")
+    assert market.locate(flat) and flat.quartier == "Necker"
+    south = Listing(title="Studio", price=220000, surface=20,
+                    postal_code="75015", description="Porte de Versailles")
+    assert not market.locate(south)
+
+
+def test_figaro_ads_outside_the_arrondissement_are_dropped():
+    """Check an ad from outside Paris is rejected for a 16e search."""
+    ad = {"area": 40, "price": 230000, "roomCount": [2], "description": "",
+          "location": {"district": None, "latitude": 48.90,
+                       "longitude": 2.40, "postalCode": "93500"}}
+    assert figaro._to_listing(ad, "75116") is None
+    ad["location"].update(postalCode="75016", latitude=48.865,
+                          longitude=2.28)
+    assert figaro._to_listing(ad, "75116").zone == "16e Nord"

@@ -143,7 +143,12 @@ def build(out_dir, previous=None, today=None, tolerance=0.05):
                 files[p] = None
     (out_dir / "files.json").write_text(json.dumps(files, indent=1))
     new = [r for r in rows if r["first_seen"] == today and previous]
-    return {"listings": len(rows), "new": len(new), "photos": len(used),
+    by_zone = {}
+    for r in rows:
+        by_zone[r["zone"]] = by_zone.get(r["zone"], 0) + 1
+    return {"listings": len(rows), "by_zone": by_zone,
+            "previous_listings": len((previous or {}).get("listings", [])),
+            "new": len(new), "photos": len(used),
             "removed_photos": sum(v is None for v in files.values()),
             "portal_errors": dict(LAST_ERRORS)}
 

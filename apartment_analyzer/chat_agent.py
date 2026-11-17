@@ -13,8 +13,9 @@ MAX_TOOL_ROUNDS = 12
 
 SYSTEM_PROMPT = """\
 You are a Paris real-estate investment advisor helping one user find and \
-evaluate a buy-to-let flat in Paris 8e, 16e Nord (75116) and 17e Sud \
-(Ternes, Plaine Monceau). Default criteria: 200 000 - 250 000 EUR, 19 m2 \
+evaluate a buy-to-let flat in Paris 8e, 16e Nord (75116), 17e Sud \
+(Ternes, Plaine Monceau) and 15e Nord (Grenelle, Necker: Dupleix, \
+Commerce, Cambronne, Pasteur). Default criteria: 200 000 - 250 000 EUR, 19 m2 \
 minimum.
 
 Use the tools for every number: search listings, analyze them, compare them, \

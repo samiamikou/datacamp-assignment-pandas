@@ -19,8 +19,9 @@ TOOLS = [
     {
         "name": "search_listings",
         "description": (
-            "Search flats for sale in Paris 8e, 16e Nord (75116) and 17e "
-            "Sud (Ternes, Plaine Monceau), keep those matching the price "
+            "Search flats for sale in Paris 8e, 16e Nord (75116), 17e "
+            "Sud (Ternes, Plaine Monceau) and 15e Nord (Grenelle, Necker), "
+            "keep those matching the price "
             "and surface criteria, analyze and rank them with the user's "
             "current financing settings. Returns a short ranked list with "
             "listing ids. Source 'all' (default) searches Bien'ici and Figaro "

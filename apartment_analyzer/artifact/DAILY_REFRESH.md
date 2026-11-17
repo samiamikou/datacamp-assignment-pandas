@@ -17,6 +17,11 @@ https://claude.ai/artifact/BwdC5p9TeWVXVhSrM6ew9M
    data.json cannot be read, continue without it.
 3. Build: `python3 -m apartment_analyzer.build_artifact --out build --previous <saved data.json>`
    (takes a few minutes: it downloads photos). It prints a summary.
+   Sanity check before publishing: if `listings` is more than double
+   `previous_listings`, or a zone count jumps sharply, open
+   `build/data.json` and check the new flats really are in Paris and in
+   their zone (title, description, district). If they are not, do not
+   publish; report it.
 4. Publish with the Artifact tool: `url` = the URL above,
    `file_path` = `build/index.html`, `files` = the whole JSON object in
    `build/files.json`, passed as the `files` map unchanged (published path

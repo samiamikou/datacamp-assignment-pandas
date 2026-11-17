@@ -1,7 +1,8 @@
 # Paris flat investment agent
 
-Finds flats for sale in **Paris 8e, 16e Nord (75116) and 17e Sud
-(Ternes / Plaine Monceau)** around **200 000 - 250 000 EUR, 19 m2 minimum**,
+Finds flats for sale in **Paris 8e, 16e Nord (75116), 17e Sud
+(Ternes / Plaine Monceau) and 15e Nord (Grenelle / Necker)** around
+**200 000 - 250 000 EUR, 19 m2 minimum, not on the ground floor**,
 then for each one:
 
 1. **Price bar** (Google-Flights style): price/m2 vs the quartier average

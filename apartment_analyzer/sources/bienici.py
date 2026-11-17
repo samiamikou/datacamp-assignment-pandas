@@ -45,12 +45,28 @@ DISTRICTS = {
     "champerret - berthier": ("17e Sud", "Ternes"),
     "courcelles - wagram": ("17e Sud", "Plaine-de-Monceaux"),
     "legendre - levis": ("17e Sud", "Plaine-de-Monceaux"),
+    "dupleix - motte picquet": ("15e Nord", "Grenelle"),
+    "emeriau - zola": ("15e Nord", "Grenelle"),
+    "violet - commerce": ("15e Nord", "Grenelle"),
+    "cambronne - garibaldi": ("15e Nord", "Necker"),
+    "pasteur - montparnasse": ("15e Nord", "Necker"),
 }
+# District names covering both halves of an arrondissement: split by
+# latitude, (zone, quartier, minimum latitude to be in the north).
+NORTH_15_MIN_LAT = 48.8450
+SPLIT_DISTRICTS = {"grenelle-javel": ("15e Nord", "Grenelle",
+                                      NORTH_15_MIN_LAT)}
 EXCLUDED = ["auteuil", "saint-cloud", "muette-sud", "maison de la radio",
             "passy", "bois de boulogne",
-            "batignolles", "fourche", "epinettes", "porte de clichy"]
-ZONE_OF_SEARCH = {"75008": "8e", "75116": "16e Nord", "75017": "17e Sud"}
+            "batignolles", "fourche", "epinettes", "porte de clichy",
+            "alleray", "procession", "parc des expositions",
+            "georges brassens", "saint-lambert", "saint lambert",
+            "convention", "citroen", "boucicaut", "javel"]
+ZONE_OF_SEARCH = {"75008": "8e", "75116": "16e Nord", "75017": "17e Sud",
+                  "75015": "15e Nord"}
 NORTH_16_MIN_LAT = 48.8600
+# Unknown districts: north of this latitude only.
+MIN_LAT = {"16e Nord": NORTH_16_MIN_LAT, "15e Nord": NORTH_15_MIN_LAT}
 
 
 def _norm(text):
@@ -70,10 +86,13 @@ def classify(district_name, search_postal_code, lat=None):
     name = _norm(district_name)
     if name in _DISTRICT_KEYS:
         return _DISTRICT_KEYS[name]
+    if name in SPLIT_DISTRICTS:
+        zone, quartier, min_lat = SPLIT_DISTRICTS[name]
+        return (zone, quartier) if lat and lat >= min_lat else None
     if any(word in name for word in EXCLUDED):
         return None
     zone = ZONE_OF_SEARCH.get(search_postal_code)
-    if zone == "16e Nord" and (lat is None or lat < NORTH_16_MIN_LAT):
+    if zone in MIN_LAT and (lat is None or lat < MIN_LAT[zone]):
         return None
     return (zone, None) if zone else None
 
@@ -115,6 +134,8 @@ def _period(year):
 def _to_listing(ad, search_postal_code):
     pos = (ad.get("blurInfo") or {}).get("position") or {}
     district = ad.get("district") or {}
+    if not str(ad.get("postalCode") or "").startswith("75"):
+        return None  # outside Paris, whatever the search returned
     place = classify(district.get("libelle"), search_postal_code,
                      pos.get("lat"))
     if place is None:

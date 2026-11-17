@@ -30,6 +30,10 @@ ZONES = {
         "postal_code": "75017",
         "quartiers": ["Ternes", "Plaine-de-Monceaux"],
     },
+    "15e Nord": {
+        "postal_code": "75015",
+        "quartiers": ["Grenelle", "Necker"],
+    },
 }
 
 # Average resale price (ancien) in EUR per m2, per quartier.
@@ -43,10 +47,13 @@ MARKET_PRICE_M2 = {
     "Muette Nord": 10_900,
     "Ternes": 10_900,
     "Plaine-de-Monceaux": 10_700,
+    "Grenelle": 10_600,
+    "Necker": 10_400,
 }
 
 # Fallback when only the zone is known.
-ZONE_PRICE_M2 = {"8e": 11_300, "16e Nord": 11_400, "17e Sud": 10_800}
+ZONE_PRICE_M2 = {"8e": 11_300, "16e Nord": 11_400, "17e Sud": 10_800,
+                 "15e Nord": 10_500}
 
 # Small flats sell at a premium per m2. (max surface, multiplier).
 SMALL_SURFACE_PREMIUM = [(20, 1.10), (25, 1.07), (30, 1.04)]
@@ -63,8 +70,11 @@ RENT_CAP_M2_BASE = {
     "Muette Nord": 39.6,
     "Ternes": 39.6,
     "Plaine-de-Monceaux": 39.6,
+    "Grenelle": 38.9,
+    "Necker": 38.9,
 }
-ZONE_RENT_CAP_M2 = {"8e": 40.3, "16e Nord": 39.8, "17e Sud": 39.6}
+ZONE_RENT_CAP_M2 = {"8e": 40.3, "16e Nord": 39.8, "17e Sud": 39.6,
+                    "15e Nord": 38.9}
 
 # Adjustments applied to the base cap.
 FURNISHED_FACTOR = 1.135
