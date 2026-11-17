@@ -67,7 +67,8 @@ def fetch(source="all", csv_path=None, criteria=None):
 # Non-standard sales whose price is not a market price.
 EXCLUDE_WORDS = ["viager", "nue propriete", "nue-propriete", "usufruit",
                  "vendu loue", "vente occupee", "locataire en place",
-                 "viager occupe"]
+                 "viager occupe", "bateau-logement", "bateau logement",
+                 "peniche", "habitat fluvial", "house boat", "houseboat"]
 
 
 def _is_standard_sale(item):
