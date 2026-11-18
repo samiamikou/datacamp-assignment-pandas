@@ -15,6 +15,10 @@ SEARCH = {
     "exclude_ground_floor": True,  # no rez-de-chaussee / rez-de-jardin
 }
 
+# Below this price per m2 an ad in these zones is misfiled (outside
+# Paris) or not a standard sale.
+MIN_PLAUSIBLE_PRICE_M2 = 6_000
+
 # Target zones -> postal code + administrative "quartiers" kept.
 ZONES = {
     "8e": {

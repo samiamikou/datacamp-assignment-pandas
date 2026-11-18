@@ -87,6 +87,23 @@ aside details[open] summary::after { content: "–"; }
 .card { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 6px 12px; text-align: left; width: 100%;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 11px 12px; cursor: pointer; }
 .card:hover { border-color: var(--muted); }
+.card { position: relative; touch-action: pan-y; user-select: none; }
+.card.dragging { transition: none; }
+@media (prefers-reduced-motion: no-preference) { .card { transition: transform .2s ease, opacity .2s ease; } }
+.card .decide { grid-column: 2 / span 2; display: flex; gap: 6px; justify-content: flex-end; }
+.swipe-hint { position: absolute; inset: 0; border-radius: var(--r); display: grid; align-items: center; padding: 0 18px;
+  font: 800 15px var(--f-display); letter-spacing: .06em; text-transform: uppercase; pointer-events: none; opacity: 0; }
+.swipe-hint.pass { color: var(--bad); justify-items: end; } .swipe-hint.keep { color: var(--good); justify-items: start; }
+.dbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 11px; font: 600 12.5px var(--f-body); cursor: pointer; }
+.dbtn.pass:hover, .dbtn.pass[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); }
+.dbtn.keep:hover, .dbtn.keep[aria-pressed="true"] { border-color: var(--good); color: var(--good); }
+.dbtn[aria-pressed="true"] { font-weight: 800; }
+.decidebar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.decidebar .dbtn { padding: 7px 16px; font-size: 14px; }
+.views { display: flex; gap: 4px; flex-wrap: wrap; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 20;
+  background: var(--ink); color: var(--bg); border-radius: 10px; padding: 9px 14px; display: flex; gap: 14px; align-items: center; font-size: 13.5px; max-width: calc(100% - 32px); }
+.toast button { background: none; border: 0; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .card[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .card .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .card .t { grid-column: 2; }
@@ -179,7 +196,7 @@ svg text { fill: var(--muted); font: 10px var(--f-data); }
   <header class="top">
     <div>
       <h1>Paris Studio Investor</h1>
-      <p>Live listings from Bien'ici and Figaro Immobilier, snapshot of <span id="snapDate"></span>, plus any flat you add from SeLoger, PAP or LeBonCoin: flats around 200–250k € (Carrez surface 19 m² or more), each with its price against the neighbourhood, a mortgage and rental simulation, and a mark out of 10. Change your variables on the left and everything updates. Refreshed every morning before 7:00 (Paris time); <span class="badge-new">New</span> marks flats that appeared since the previous day.</p>
+      <p>Live listings from Bien'ici, Figaro Immobilier, ParuVendu and the notaires' site, snapshot of <span id="snapDate"></span>, plus any flat you add from SeLoger, PAP or LeBonCoin: flats around 200–250k € (Carrez surface 19 m² or more), each with its price against the neighbourhood, a mortgage and rental simulation, and a mark out of 10. Change your variables on the left and everything updates. Refreshed every morning before 7:00 (Paris time); <span class="badge-new">New</span> marks flats that appeared since the previous day.</p>
     </div>
     <div class="plaques" aria-label="Target zones">
       <span class="plaque">8e <small>Arrondissement</small></span>
@@ -238,6 +255,10 @@ svg text { fill: var(--muted); font: 10px var(--f-data); }
       </div>
 
       <section id="panel-list" role="tabpanel" aria-labelledby="tab-list">
+        <div class="toolbar">
+          <div class="views" id="views" role="group" aria-label="Which flats to show"></div>
+          <span class="rail-note" id="syncNote"></span>
+        </div>
         <div class="toolbar">
           <div style="display:flex;gap:6px;flex-wrap:wrap" id="zoneChips"></div>
           <label class="toggle"><input type="checkbox" id="hideFG"> Hide energy label F/G</label>
@@ -300,7 +321,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const clip = (v, lo = 0, hi = 10) => Math.max(lo, Math.min(hi, v));
 const lerp = (x, a, b) => clip((x - a) / (b - a) * 10);
 const median = (a) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-const portalTags = (l) => l.user ? `<span class="portal user">Yours</span>` : (l.links || []).map((k) => `<span class="portal">${k.portal === "Figaro Immobilier" ? "Figaro" : "Bien'ici"}</span>`).join("");
+const portalTags = (l) => l.user ? `<span class="portal user">Yours</span>` : (l.links || []).map((k) => `<span class="portal">${{ "Figaro Immobilier": "Figaro", "Notaires de France": "Notaires" }[k.portal] || k.portal}</span>`).join("");
 const BASE_LISTINGS = DATA.listings.slice();
 const HAS_HISTORY = BASE_LISTINGS.some((l) => l.first_seen && l.first_seen < DATA.snapshot);
 const isNew = (l) => HAS_HISTORY && l.first_seen === DATA.snapshot;
@@ -425,7 +446,7 @@ function analyzeAll(s) {
 }
 
 /* ---------- rendering ---------- */
-let state = { zones: new Set(Object.keys(C.zonePrice)), hideFG: false, sort: "score", selected: null, results: [] };
+let state = { zones: new Set(Object.keys(C.zonePrice)), hideFG: false, sort: "score", selected: null, results: [], view: "review" };
 const scoreClass = (t) => t >= 6 ? "s-good" : t >= 4.5 ? "s-mid" : "s-bad";
 const dpeBadge = (d) => `<span class="dpe ${d ? "dpe-" + d : "dpe-x"}" title="Energy label ${d || "unknown"}">${d || "?"}</span>`;
 const zonePlaque = (z) => `<span class="plaque" style="font-size:11px;padding:1px 6px">${esc(z)}</span>`;
@@ -435,7 +456,8 @@ const labelColor = (lab) => lab === "low" ? "var(--good)" : lab === "high" ? "va
 
 function visible() {
   const keys = { score: (a) => -a.sc.total, cf: (a) => -a.r.cfAfter, price: (a) => a.l.price, delta: (a) => a.p.delta };
-  return state.results.filter((a) => state.zones.has(a.l.zone) && !(state.hideFG && ["F", "G"].includes(a.l.dpe)))
+  const want = { review: null, keep: "keep", pass: "pass" }[state.view];
+  return state.results.filter((a) => state.zones.has(a.l.zone) && !(state.hideFG && ["F", "G"].includes(a.l.dpe)) && decisionOf(a.l) === want)
     .sort((x, y) => keys[state.sort](x) - keys[state.sort](y));
 }
 function renderList() {
@@ -445,7 +467,9 @@ function renderList() {
   $("list").innerHTML = items.length ? items.map((a) => {
     const g = barGeometry(a.p);
     const ph = (a.l.photos || [])[0];
-    return `<button class="card" type="button" data-id="${a.l.id}" aria-current="${a.l.id === state.selected}">
+    const d = decisionOf(a.l);
+    return `<div class="card" role="button" tabindex="0" data-id="${a.l.id}" aria-current="${a.l.id === state.selected}">
+      <span class="swipe-hint pass">Pass ✕</span><span class="swipe-hint keep">♥ Keep</span>
       ${ph ? `<img class="thumb" src="${esc(ph)}" alt="" loading="lazy">` : `<span class="thumb">No photo</span>`}
       <div class="t">${isNew(a.l) ? `<span class="badge-new">New</span> ` : ""}${esc(a.l.title)}</div>
       <div class="side"><span class="score-chip ${scoreClass(a.sc.total)}">${a.sc.total.toFixed(1)}</span>${dpeBadge(a.l.dpe)}</div>
@@ -453,7 +477,10 @@ function renderList() {
         <span class="num">${eur(a.l.price)}</span><span class="num">${a.l.surface} m²</span>
         <span class="num" style="color:${a.r.cfAfter < 0 ? "var(--bad)" : "var(--good)"}">${a.r.cfAfter >= 0 ? "+" : ""}${n0(a.r.cfAfter)} €/mo</span></div>
       <div class="mini" style="background:${gradient(g)}"><i style="left:${g.pos}%"></i></div>
-    </button>`; }).join("") : `<p class="callout">No listing matches these filters. Show more zones or include energy labels F/G.</p>`;
+      <div class="decide"><button type="button" class="dbtn pass" data-decide="pass" aria-pressed="${d === "pass"}" title="Not interested (←)">✕ Pass</button>
+        <button type="button" class="dbtn keep" data-decide="keep" aria-pressed="${d === "keep"}" title="Interested (→)">♥ Keep</button></div>
+    </div>`; }).join("") : `<p class="callout">${{ review: "Nothing left to review with these filters. Well done!", keep: "No kept flats yet. Tap ♥ Keep or swipe a card right.", pass: "No passed flats." }[state.view]}</p>`;
+  renderViews();
   renderSheet();
 }
 function amortChart(years) {
@@ -479,6 +506,9 @@ function renderSheet() {
   const net = r.rentYear - r.yearly - lo.pay * 12 - r.tax;
   $("sheet").innerHTML = `
     <div style="display:grid;gap:8px">
+      <div class="decidebar"><button type="button" class="dbtn pass" data-decide="pass" data-id="${l.id}" aria-pressed="${decisionOf(l) === "pass"}">✕ Not interested</button>
+        <button type="button" class="dbtn keep" data-decide="keep" data-id="${l.id}" aria-pressed="${decisionOf(l) === "keep"}">♥ Keep</button>
+        <span class="rail-note">Keys ← / → · swipe cards on a phone</span></div>
       <h2>${esc(l.title)}</h2>
       <div class="facts">${zonePlaque(l.zone)}<span>${esc(l.quartier || "")}${l.district && l.district !== l.quartier ? " · " + esc(l.district) : ""}</span>
         <span class="num">${eur(l.price)}</span><span class="num">${l.surface} m²</span><span>${l.rooms} room${l.rooms > 1 ? "s" : ""}</span>
@@ -584,6 +614,46 @@ Reply with only this JSON object: {"verdict":"yes"|"maybe"|"no","summary":"2 sen
     if (["not_granted", "sampling_disabled"].includes(err?.code)) sampleFn = null;
   }
 }
+/* ---------- pass / keep decisions (synced per user when signed in) ---------- */
+const SW = { map: {}, col: null, chains: {}, firstSnap: true };
+let swipeJustHappened = false, lastUndo = null, toastTimer = null;
+const keyOf = (l) => l.key || l.id;
+const decisionOf = (l) => SW.map[keyOf(l)] || null;
+try { SW.map = JSON.parse(localStorage.getItem("psi-swipes") || "{}") || {}; } catch (e) {}
+function saveLocal() { try { localStorage.setItem("psi-swipes", JSON.stringify(SW.map)); } catch (e) {} }
+function pushRemote(l, d) {
+  if (!SW.col) return;
+  const k = keyOf(l), ref = SW.col.doc("swipe-" + k.replace(/[^A-Za-z0-9_-]/g, "_"));
+  SW.chains[k] = (SW.chains[k] || Promise.resolve()).then(() => d
+    ? ref.set({ key: k, decision: d, title: l.title, price: l.price, url: l.url || "", zone: l.zone, at: new Date().toISOString() })
+    : ref.delete()).catch(() => { $("syncNote").textContent = "Couldn't save to your account; kept in this browser."; });
+}
+function decide(id, d, opts = {}) {
+  const a = state.results.find((x) => x.l.id === id); if (!a) return;
+  const k = keyOf(a.l), prev = SW.map[k] || null;
+  if (prev === d) d = null; // pressing the same choice again clears it
+  if (d) SW.map[k] = d; else delete SW.map[k];
+  saveLocal(); pushRemote(a.l, d);
+  if (state.selected === id && d && state.view === "review") {
+    const items = visible(); const i = items.findIndex((x) => x.l.id === id);
+    state.selected = (items[i + 1] || items[i - 1])?.l.id ?? null;
+  }
+  renderList();
+  if (!opts.quiet) showToast(`${d === "pass" ? "Passed" : d === "keep" ? "Kept" : "Back to review"}: ${a.l.title}`, () => { if (prev) SW.map[k] = prev; else delete SW.map[k]; saveLocal(); pushRemote(a.l, prev); state.selected = id; renderList(); });
+}
+function showToast(msg, undo) {
+  document.querySelector(".toast")?.remove(); clearTimeout(toastTimer);
+  const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status");
+  t.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button type="button">Undo</button>' : ""}`;
+  if (undo) t.querySelector("button").onclick = () => { t.remove(); undo(); };
+  document.body.append(t); toastTimer = setTimeout(() => t.remove(), 5000);
+}
+function renderViews() {
+  const base = state.results.filter((a) => state.zones.has(a.l.zone) && !(state.hideFG && ["F", "G"].includes(a.l.dpe)));
+  const n = (w) => base.filter((a) => decisionOf(a.l) === w).length;
+  $("views").innerHTML = [["review", "To review", n(null)], ["keep", "♥ Kept", n("keep")], ["pass", "✕ Passed", n("pass")]]
+    .map(([v, label, c]) => `<button type="button" class="chip" data-view="${v}" aria-pressed="${state.view === v}">${label} <span class="num">${c}</span></button>`).join("");
+}
 function recompute() {
   const s = readSettings();
   try { localStorage.setItem("psi-settings", JSON.stringify(s)); } catch (e) {}
@@ -596,7 +666,11 @@ $("zoneChips").addEventListener("click", (e) => { const b = e.target.closest(".c
   state.zones.has(z) ? state.zones.delete(z) : state.zones.add(z); b.setAttribute("aria-pressed", state.zones.has(z)); renderList(); });
 $("hideFG").addEventListener("change", (e) => { state.hideFG = e.target.checked; renderList(); });
 $("sort").addEventListener("change", (e) => { state.sort = e.target.value; renderList(); });
-$("list").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (!c) return; state.selected = c.dataset.id; renderList();
+$("list").addEventListener("click", (e) => {
+  const c = e.target.closest(".card"); if (!c) return;
+  if (swipeJustHappened) { swipeJustHappened = false; return; }
+  const b = e.target.closest("[data-decide]"); if (b) { decide(c.dataset.id, b.dataset.decide); return; }
+  state.selected = c.dataset.id; renderList();
   if (window.matchMedia("(max-width: 1180px)").matches) $("sheet").scrollIntoView({ behavior: "smooth", block: "start" }); });
 document.querySelector("aside").addEventListener("input", recompute);
 document.querySelector("aside").addEventListener("change", recompute);
@@ -619,6 +693,53 @@ $("sheet").addEventListener("click", (e) => {
   const vb = e.target.closest("#visitBtn"); if (vb) { runVisitCheck(vb.dataset.id, vb); return; }
   const b = e.target.closest("[data-remove]"); if (!b) return;
   userListings = userListings.filter((x) => x.id !== b.dataset.remove); syncListings(); state.selected = null; recompute(); });
+$("views").addEventListener("click", (e) => { const b = e.target.closest("[data-view]"); if (!b) return; state.view = b.dataset.view; state.selected = null; renderList(); });
+document.addEventListener("keydown", (e) => {
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || $("panel-list").hidden) return;
+  if (e.target.closest("input, textarea, select, [contenteditable]")) return;
+  if (e.key === "Enter" && e.target.classList?.contains("card")) { e.target.click(); return; }
+  if (!state.selected || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  e.preventDefault(); decide(state.selected, e.key === "ArrowLeft" ? "pass" : "keep");
+});
+(() => { // horizontal swipe on cards: left = pass, right = keep
+  let drag = null;
+  $("list").addEventListener("pointerdown", (e) => {
+    const c = e.target.closest(".card"); if (!c || e.target.closest("button") || e.button > 0) return;
+    drag = { c, id: c.dataset.id, x: e.clientX, y: e.clientY, dx: 0, on: false };
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.on) { if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy)) { if (Math.abs(dy) > 12) drag = null; return; } drag.on = true; drag.c.classList.add("dragging"); }
+    drag.dx = dx; drag.c.style.transform = `translateX(${dx}px) rotate(${dx / 40}deg)`;
+    drag.c.querySelector(".swipe-hint.pass").style.opacity = Math.min(1, -dx / 90);
+    drag.c.querySelector(".swipe-hint.keep").style.opacity = Math.min(1, dx / 90);
+  });
+  const end = () => {
+    if (!drag) return; const { c, id, dx, on } = drag; drag = null; if (!on) return;
+    swipeJustHappened = true; setTimeout(() => { swipeJustHappened = false; }, 50);
+    c.classList.remove("dragging");
+    if (Math.abs(dx) > 90) { c.style.transform = `translateX(${Math.sign(dx) * 120}%)`; c.style.opacity = "0"; setTimeout(() => decide(id, dx < 0 ? "pass" : "keep"), 160); }
+    else { c.style.transform = ""; for (const h of c.querySelectorAll(".swipe-hint")) h.style.opacity = 0; }
+  };
+  window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
+})();
+(async () => { // sync decisions to the viewer's private store when signed in
+  const [db, user] = await Promise.all([window.claude?.use?.("db"), window.claude?.use?.("user")]);
+  if (!db || !user) { $("syncNote").textContent = "Your choices are kept in this browser."; return; }
+  const uid = await user.id();
+  if (!uid) { $("syncNote").textContent = "Sign in to keep your choices across devices; for now they stay in this browser."; return; }
+  SW.col = db.collection("data/users/" + uid);
+  SW.col.onSnapshot((snap) => {
+    const remote = {};
+    for (const d of snap.docs) { const v = d.data(); if (v && v.key && (v.decision === "pass" || v.decision === "keep")) remote[v.key] = v.decision; }
+    if (SW.firstSnap) { // first sync: upload choices made in this browser before
+      SW.firstSnap = false;
+      for (const [k, v] of Object.entries(SW.map)) if (!(k in remote)) { const a = state.results.find((x) => keyOf(x.l) === k); if (a) { pushRemote(a.l, v); remote[k] = v; } }
+    }
+    SW.map = remote; saveLocal(); $("syncNote").textContent = "Your choices sync across your devices."; renderList();
+  }, () => { SW.col = null; $("syncNote").textContent = "Couldn't reach your saved choices; using this browser's copy."; });
+})();
+$("sheet").addEventListener("click", (e) => { const b = e.target.closest("[data-decide]"); if (b && b.dataset.id) decide(b.dataset.id, b.dataset.decide); });
 if (window.matchMedia("(max-width: 920px)").matches) for (const d of document.querySelectorAll("aside details")) d.open = false;
 recompute();
 
@@ -626,15 +747,15 @@ recompute();
 const EXAMPLES = ["Lequel visiter en premier, et à quel prix faire une offre ?", "Apport 40 000 €, taux 3,1 % sur 20 ans, revenus 4 500 €/mois",
   "Compare the three best flats rated D or better", "What if I rent unfurnished with micro-foncier?"];
 const turns = []; let ctl = null;
-const RULES = `You are a Paris buy-to-let advisor inside a web page. The page holds a snapshot (${DATA.snapshot}) of ${BASE_LISTINGS.length} live listings from Bien'ici and Figaro Immobilier (duplicates merged), plus flats the user added (ids starting with U): flats around 200-250k EUR, Carrez surface >= 19 m2, in Paris 8e, 16e Nord (Chaillot, Dauphine, Muette Nord), 17e Sud (Ternes, Plaine Monceau) and 15e Nord (Grenelle, Necker: Dupleix, Commerce, Cambronne, Pasteur). Viager, ground-floor and out-of-zone ads are already excluded.
-Use the tools for every number: list_listings to see the ranking, analyze_listing for one flat, get_settings / update_settings to read or change the user's mortgage and rental variables (whenever they mention a down payment, rate, duration, income, furnished or not, tax bracket, rent, works...). Never invent listings or figures. SeLoger, PAP and LeBonCoin can't be searched automatically: when the user pastes an ad from any site, extract its facts and call add_listing (use the Carrez surface; ask for price, surface or zone only if missing), then analyze it.
+const RULES = `You are a Paris buy-to-let advisor inside a web page. The page holds a snapshot (${DATA.snapshot}) of ${BASE_LISTINGS.length} live listings from Bien'ici, Figaro Immobilier, ParuVendu and the notaires' site (duplicates merged), plus flats the user added (ids starting with U): flats around 200-250k EUR, Carrez surface >= 19 m2, in Paris 8e, 16e Nord (Chaillot, Dauphine, Muette Nord), 17e Sud (Ternes, Plaine Monceau) and 15e Nord (Grenelle, Necker: Dupleix, Commerce, Cambronne, Pasteur). Viager, ground-floor and out-of-zone ads are already excluded.
+Use the tools for every number: list_listings to see the ranking, analyze_listing for one flat, get_settings / update_settings to read or change the user's mortgage and rental variables (whenever they mention a down payment, rate, duration, income, furnished or not, tax bracket, rent, works...). Never invent listings or figures. The user sorts flats by swiping: respect their "pass" decisions (don't push those flats again) and favour the ones they kept; use mark_listing only when they ask you to pass or keep flats. SeLoger, PAP and LeBonCoin can't be searched automatically: when the user pastes an ad from any site, extract its facts and call add_listing (use the Carrez surface; ask for price, surface or zone only if missing), then analyze it.
 When you discuss a flat, cover the price vs neighbourhood, monthly payment, legal maximum rent (Paris rent control), net yield, monthly cash-flow after tax and the mark /10, then give a clear opinion: visit, negotiate (suggest a target price) or skip. Flag energy-label rental bans (G banned since 2025, F from 2028, E from 2034), ground floors, works mentioned in the ad. Market references are approximations and asking prices run above sale prices: remind the user to check DVF and the official rent ceiling before an offer. You are a decision aid, not a licensed advisor.
 Reply in the user's language (French or English), concisely: short paragraphs, bullet lists with "- ", **bold** for key figures. No tables, no headings. Refer to flats by their short title and id (e.g. L3).`;
 function summary(a, full) {
   const o = { id: a.l.id, title: a.l.title, zone: a.l.zone, quartier: a.l.quartier, price: a.l.price, surface_m2: a.l.surface, rooms: a.l.rooms,
     energy_label: a.l.dpe, floor: a.l.floor, lift: a.l.elevator, price_m2: Math.round(a.p.pm), vs_area_pct: +a.p.delta.toFixed(1), price_label: a.p.label,
     monthly_payment: Math.round(a.lo.pay), legal_max_rent: Math.round(a.r.legal), rent_used: Math.round(a.r.rent), net_yield_pct: +a.r.net.toFixed(2),
-    cashflow_month_after_tax: Math.round(a.r.cfAfter), mark: a.sc.total, verdict: a.sc.verdict };
+    cashflow_month_after_tax: Math.round(a.r.cfAfter), mark: a.sc.total, verdict: a.sc.verdict, user_decision: decisionOf(a.l) || "not reviewed" };
   if (!full) return o;
   return { ...o, url: a.l.url, typical_range_m2: [Math.round(a.p.low), Math.round(a.p.high)], comparables_used: a.p.peers, built: a.l.period,
     annual_building_charges: a.l.condo, price_already_reduced: a.l.reduced, loan_amount: Math.round(a.lo.loan), total_credit_cost: Math.round(a.lo.creditCost),
@@ -654,9 +775,13 @@ const TOOLS = [
       zone: { type: "string" }, quartier: { type: "string" }, rooms: { type: "number" }, dpe: { type: "string" }, floor: { type: "number" }, elevator: { type: "boolean" },
       period: { type: "string" }, condo: { type: "number", description: "annual building charges EUR" }, notes: { type: "string", description: "short summary of the ad" } }, required: ["price", "surface", "zone"] },
     execute: (i) => { const l = addListing(i); state.selected = l.id; recompute(); return summary(state.results.find((x) => x.l.id === l.id), true); } },
-  { name: "list_listings", description: "Ranked listings with key figures under the current settings. Optional filters: zone ('8e'|'16e Nord'|'17e Sud'|'15e Nord'), max_price, min_energy_label (e.g. 'E' keeps A-E), sort ('mark'|'cashflow'|'price'), limit.",
-    inputSchema: { type: "object", properties: { zone: { type: "string" }, max_price: { type: "number" }, min_energy_label: { type: "string" }, sort: { type: "string" }, limit: { type: "number" } } },
-    execute: (i) => { let rows = state.results.slice();
+  { name: "mark_listing", description: "Record the user's decision on a flat, as if they swiped it: 'pass' (not interested, hidden from the review list), 'keep' (interested) or 'clear' (back to review). Only do this when the user asks.",
+    inputSchema: { type: "object", properties: { id: { type: "string" }, decision: { type: "string", enum: ["pass", "keep", "clear"] } }, required: ["id", "decision"] },
+    execute: (i) => { const id = String(i.id).toUpperCase(); if (!state.results.find((x) => x.l.id === id)) throw new Error("Unknown id " + i.id);
+      decide(id, i.decision === "clear" ? null : String(i.decision), { quiet: true }); return { id, decision: i.decision }; } },
+  { name: "list_listings", description: "Ranked listings with key figures under the current settings. Flats the user passed on are left out unless include_passed is true; each row has user_decision. Optional filters: zone ('8e'|'16e Nord'|'17e Sud'|'15e Nord'), max_price, min_energy_label (e.g. 'E' keeps A-E), sort ('mark'|'cashflow'|'price'), limit.",
+    inputSchema: { type: "object", properties: { include_passed: { type: "boolean" }, zone: { type: "string" }, max_price: { type: "number" }, min_energy_label: { type: "string" }, sort: { type: "string" }, limit: { type: "number" } } },
+    execute: (i) => { let rows = state.results.filter((a) => i.include_passed || decisionOf(a.l) !== "pass");
       if (i.zone) rows = rows.filter((a) => a.l.zone === String(i.zone));
       if (i.max_price) rows = rows.filter((a) => a.l.price <= Number(i.max_price));
       if (i.min_energy_label) rows = rows.filter((a) => a.l.dpe && a.l.dpe <= String(i.min_energy_label).toUpperCase());

@@ -72,12 +72,17 @@ def _border_lat(lon):
     return pts[-1][1]
 
 
+# Postal codes shared by both halves of an arrondissement: a listing with
+# one of these is in the zone only if its text names a landmark there.
+AMBIGUOUS_POSTAL = {"75016": "16e Nord"}
+
+
 def zone_from_postal_code(postal_code):
     """Return the target zone of a postal code, or None."""
     for zone, info in config.ZONES.items():
         if str(postal_code) == info["postal_code"]:
             return zone
-    return None
+    return AMBIGUOUS_POSTAL.get(str(postal_code))
 
 
 def guess_quartier(listing, zone):
@@ -92,6 +97,22 @@ def guess_quartier(listing, zone):
                for w in words):
             return quartier
     return None
+
+
+# Zones covering only part of an arrondissement: without a district or
+# a map position, an ad must name a street or landmark of the right half.
+PARTIAL_ZONES = {"16e Nord", "17e Sud", "15e Nord"}
+
+
+def locate_by_text(listing):
+    """Locate a listing that has only a postal code and its ad text.
+
+    Return False unless the text places it inside a target zone.
+    """
+    listing.zone = None
+    if not locate(listing):
+        return False
+    return listing.zone not in PARTIAL_ZONES or listing.quartier is not None
 
 
 FLOOR_RE = re.compile(
@@ -156,8 +177,13 @@ def locate(listing):
     text = _norm(f"{listing.title} {listing.description}")
     if any(w in text for w in EXCLUDED_BY_ZONE.get(zone, [])):
         return False
+    preset = listing.zone is not None
     listing.zone = zone
     listing.quartier = guess_quartier(listing, zone)
+    if not preset and str(listing.postal_code) in AMBIGUOUS_POSTAL \
+            and listing.quartier is None:
+        listing.zone = None
+        return False
     return True
 
 

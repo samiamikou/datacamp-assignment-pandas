@@ -42,8 +42,13 @@ def _clean(text):
     return re.sub(r"\s+", " ", text).strip()[:520]
 
 
+PORTALS = {"lefigaro": "Figaro Immobilier", "paruvendu": "ParuVendu",
+           "notaires": "Notaires de France", "bienici": "Bien'ici"}
+
+
 def _portal(url):
-    return "Figaro Immobilier" if "lefigaro" in url else "Bien'ici"
+    return next((name for key, name in PORTALS.items() if key in url),
+                "Bien'ici")
 
 
 def download_photo(url, dest):

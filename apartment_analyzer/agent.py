@@ -17,7 +17,7 @@ from . import config, market
 from .mortgage import LoanInputs, simulate_loan
 from .rental import RentalInputs, simulate_rental
 from .scoring import score_investment
-from .sources import bienici, figaro
+from .sources import bienici, figaro, notaires, paruvendu
 from .sources.bienici import SourceError
 from .sources.csv_source import load_csv, load_demo
 
@@ -33,7 +33,8 @@ class Analysis:
     score: object
 
 
-LIVE_SOURCES = {"bienici": bienici, "figaro": figaro}
+LIVE_SOURCES = {"bienici": bienici, "figaro": figaro,
+                "paruvendu": paruvendu, "notaires": notaires}
 LAST_ERRORS = {}
 
 
@@ -85,6 +86,8 @@ def filter_listings(listings, criteria=None, price_tolerance=0.0):
     for item in listings:
         if item.surface < crit["min_surface"] or not _is_standard_sale(item) \
                 or not lo <= item.price <= hi or not market.locate(item):
+            continue
+        if item.price_m2 < config.MIN_PLAUSIBLE_PRICE_M2:
             continue
         if item.floor is None:
             item.floor = market.floor_from_text(item.description)

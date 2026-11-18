@@ -124,3 +124,47 @@ def test_figaro_ads_outside_the_arrondissement_are_dropped():
     ad["location"].update(postalCode="75016", latitude=48.865,
                           longitude=2.28)
     assert figaro._to_listing(ad, "75116").zone == "16e Nord"
+
+
+def test_paruvendu_card_parsing():
+    """Check a ParuVendu result card becomes a located listing."""
+    from apartment_analyzer.sources import paruvendu
+    card = (' data-id="1" ><a href="/immobilier/vente/appartement/1A1KIV" '
+            'title=" Appartement - 1 pièce(s) - 21 m²"><img src="https://img.'
+            'paruvendu.fr/media_ext/x.jpg"></a><span>236 250 €</span>'
+            '<p>DPE :</p><b>F</b><p>Studio rue du Commerce au 4ème étage avec '
+            'ascenseur, parfait état, proche métro Commerce et Émile Zola.</p>')
+    item = paruvendu.parse_card(card, "75015")
+    assert item.price == 236250 and item.surface == 21 and item.dpe == "F"
+    assert item.floor == 4 and item.elevator is True
+    assert item.url.startswith("https://www.paruvendu.fr/immobilier/vente/")
+    assert market.locate_by_text(item) and item.zone == "15e Nord"
+
+
+def test_text_only_listings_need_a_landmark_in_split_zones():
+    """Check a 16e ad with no northern landmark is not kept."""
+    vague = Listing(title="Studio", price=230000, surface=20,
+                    postal_code="75016", description="Beau studio lumineux")
+    assert not market.locate_by_text(vague)
+    north = Listing(title="Studio", price=230000, surface=20,
+                    postal_code="75016", description="Proche Trocadéro")
+    assert market.locate_by_text(north) and north.quartier == "Chaillot"
+
+
+def test_notaires_ad_to_listing():
+    """Check a notarial sale is parsed and auctions are skipped."""
+    from apartment_analyzer.sources import notaires
+    ad = {"typeTransaction": "VENTE", "viager": "NON", "prixTotal": 242000,
+          "surface": 27.88, "codePostal": "75008", "nbPieces": 1,
+          "descriptionFr": "PARIS 08 / SAINT AUGUSTIN - Studio 3e étage",
+          "urlDetailAnnonceFr": "https://www.immobilier.notaires.fr/fr/x"}
+    item = notaires._to_listing(ad)
+    assert item.zone == "8e" and item.price == 242000 and item.floor == 3
+    assert notaires._to_listing({**ad, "typeTransaction": "VNI"}) is None
+
+
+def test_implausibly_cheap_ads_are_dropped():
+    """Check an ad far below Paris prices (misfiled) is filtered out."""
+    cheap = Listing(title="F3", price=245000, surface=66, postal_code="75017",
+                    zone="17e Sud", quartier="Ternes", url="x")
+    assert filter_listings([cheap]) == []
